@@ -21,8 +21,6 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
-#include <scoped_lock.h>
-
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/time.h>
@@ -31,7 +29,6 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-#include <pthread.h>
 #include <stdint.h>
 
 #include <string>
@@ -41,6 +38,7 @@ extern "C" {
 #include "input.h"
 #include "output.h"
 #include "manager.h"
+#include "libthread.h"
 
 struct Chapter
 {

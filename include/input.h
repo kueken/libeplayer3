@@ -26,8 +26,6 @@
 #include <vector>
 #include <map>
 
-#include <scoped_lock.h>
-
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/time.h>
@@ -35,6 +33,8 @@ extern "C" {
 #include <libswresample/swresample.h>
 #include <libavutil/opt.h>
 }
+
+#include "libthread.h"
 
 class Player;
 class Track;

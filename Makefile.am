@@ -10,6 +10,7 @@ AM_CXXFLAGS = -fno-rtti -fno-exceptions -fno-strict-aliasing
 libeplayer3_la_SOURCES = \
 	input.cpp output.cpp \
 	manager.cpp player.cpp \
+	libthread.cpp \
 	writer/writer.cpp \
 	writer/pes.cpp \
 	writer/misc.cpp
@@ -19,7 +20,7 @@ libeplayer3_la_SOURCES = \
 # writer/h264.cpp
 # writer/h263.cpp writer/vc1.cpp writer/pcm.cpp writer/aac.cpp
 
-# libexteplayer3_la_LIBADD = -lpthread -lavformat -lavcodec -lavutil -lswresample
+#libexteplayer3_la_LIBADD = -lpthread -lavformat -lavcodec -lavutil -lswresample
 
 LIBEPLAYER3_LIBS = libeplayer3.la
 

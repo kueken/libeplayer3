@@ -26,8 +26,6 @@
 #include <vector>
 #include <map>
 
-#include <scoped_lock.h>
-
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/time.h>
@@ -37,6 +35,7 @@ extern "C" {
 }
 
 #include "writer.h"
+#include "libthread.h"
 
 class Player;
 
