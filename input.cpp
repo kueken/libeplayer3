@@ -194,11 +194,7 @@ bool Input::Play()
 
 		int err = av_read_frame(avfc, &packet);
 		if (err == AVERROR(EAGAIN)) {
-#if (LIBAVFORMAT_VERSION_MAJOR == 57 && LIBAVFORMAT_VERSION_MINOR == 25)
 			av_packet_unref(&packet);
-#else
-			av_free_packet(&packet);
-#endif
 			continue;
 		}
 		if (averror(err, av_read_frame)) // EOF?
@@ -257,12 +253,7 @@ bool Input::Play()
 			if (packet.data && packet.size > 1)
 				teletext_write(_teletextTrack->pid, packet.data + 1, packet.size - 1);
 		}
-
-#if (LIBAVFORMAT_VERSION_MAJOR == 57 && LIBAVFORMAT_VERSION_MINOR == 25)
 		av_packet_unref(&packet);
-#else
-		av_free_packet(&packet);
-#endif
 	} /* while */
 
 	if (player->abortRequested)
@@ -355,11 +346,7 @@ bool Input::ReadSubtitle(const char *filename, const char *format, int pid)
 		avcodec_decode_subtitle2(c, &sub, &got_sub, &packet);
 		if (got_sub)
 			dvbsub_ass_write(c, &sub, pid);
-#if (LIBAVFORMAT_VERSION_MAJOR == 57 && LIBAVFORMAT_VERSION_MINOR == 25)
 		av_packet_unref(&packet);
-#else
-		av_free_packet(&packet);
-#endif
 	}
 	avcodec_close(c);
 	avformat_close_input(&subavfc);
@@ -452,14 +439,7 @@ again:
 	avfc->iformat->flags |= AVFMT_SEEK_TO_PTS;
 	avfc->flags = AVFMT_FLAG_GENPTS;
 	if (player->noprobe) {
-#if (LIBAVFORMAT_VERSION_MAJOR <  55) || \
-    (LIBAVFORMAT_VERSION_MAJOR == 55 && LIBAVFORMAT_VERSION_MINOR <  43) || \
-    (LIBAVFORMAT_VERSION_MAJOR == 55 && LIBAVFORMAT_VERSION_MINOR == 43 && LIBAVFORMAT_VERSION_MICRO < 100) || \
-    (LIBAVFORMAT_VERSION_MAJOR == 57 && LIBAVFORMAT_VERSION_MINOR == 25)
 		avfc->max_analyze_duration = 1;
-#else
-		avfc->max_analyze_duration2 = 1;
-#endif
 		avfc->probesize = 131072;
 	}
 
@@ -744,11 +724,7 @@ bool Input::GetMetadata(std::vector<std::string> &keys, std::vector<std::string>
 				fwrite(pkt->data, pkt->size, 1, cover_art);
 				fclose(cover_art);
 			}
-#if (LIBAVFORMAT_VERSION_MAJOR == 57 && LIBAVFORMAT_VERSION_MINOR == 25)
 			av_packet_unref(pkt);
-#else
-			av_free_packet(pkt);
-#endif
 			break;
 			}
 		}
