@@ -51,7 +51,7 @@ class Player {
 	friend class Input;
 	friend class Output;
 	friend class Manager;
-	friend class cPlayback;
+	friend class eServiceLibpl;
 	friend class WriterPCM;
 	friend int interrupt_cb(void *arg);
 
