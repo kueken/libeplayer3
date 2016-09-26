@@ -51,7 +51,6 @@ class Input
 		Track *videoTrack;
 		Track *audioTrack;
 		Track *subtitleTrack;
-		Track *teletextTrack;
 
 		int hasPlayThreadStarted;
 		int64_t seek_avts_abs;
@@ -78,7 +77,6 @@ class Input
 		bool GetDuration(int64_t &duration);
 		bool SwitchAudio(Track *track);
 		bool SwitchSubtitle(Track *track);
-		bool SwitchTeletext(Track *track);
 		bool SwitchVideo(Track *track);
 		bool GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values);
 		bool GetReadCount(uint64_t &readcount);

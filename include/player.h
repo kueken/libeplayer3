@@ -84,13 +84,11 @@ class Player {
 	public:
 		bool SwitchAudio(int pid);
 		bool SwitchVideo(int pid);
-		bool SwitchTeletext(int pid);
 		bool SwitchSubtitle(int pid);
 
 		int GetAudioPid();
 		int GetVideoPid();
 		int GetSubtitlePid();
-		int GetTeletextPid();
 
 		bool GetPts(int64_t &pts);
 		bool GetFrameCount(int64_t &framecount);

@@ -47,7 +47,6 @@ struct Track
 	bool hidden; // not part of currently selected program
 	bool is_static;
 	int ac3flags;
-	int type, mag, page; // for teletext
 	Track() : pid(-1), stream(NULL), inactive(false), hidden(false), is_static(false), ac3flags(0) {}
 };
 
@@ -65,7 +64,7 @@ class Manager
 	private:
 		Player *player;
 		Mutex mutex;
-		std::map<int,Track*> videoTracks, audioTracks, subtitleTracks, teletextTracks;
+		std::map<int,Track*> videoTracks, audioTracks, subtitleTracks;
 		std::map<int,Program> Programs;
 		void addTrack(std::map<int,Track*> &tracks, Track &track);
 		Track *getTrack(std::map<int,Track*> &tracks, int pid);
@@ -74,20 +73,17 @@ class Manager
 		void addVideoTrack(Track &track);
 		void addAudioTrack(Track &track);
 		void addSubtitleTrack(Track &track);
-		void addTeletextTrack(Track &track);
 		void addProgram(Program &program);
 
 		std::vector<Track> getVideoTracks();
 		std::vector<Track> getAudioTracks();
 		std::vector<Track> getSubtitleTracks();
-		std::vector<Track> getTeletextTracks();
 		std::vector<Program> getPrograms();
 		bool selectProgram(const int id);
 
 		Track *getVideoTrack(int pid);
 		Track *getAudioTrack(int pid);
 		Track *getSubtitleTrack(int pid);
-		Track *getTeletextTrack(int pid);
 
 		bool initTrackUpdate();
 		void clearTracks();

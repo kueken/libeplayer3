@@ -356,12 +356,6 @@ bool Player::SwitchSubtitle(int pid)
 	return input.SwitchSubtitle(track);
 }
 
-bool Player::SwitchTeletext(int pid)
-{
-	Track *track = manager.getTeletextTrack(pid);
-	return input.SwitchTeletext(track);
-}
-
 bool Player::GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values)
 {
 	return input.GetMetadata(keys, values);
@@ -406,12 +400,6 @@ int Player::GetAudioPid()
 int Player::GetSubtitlePid()
 {
 	Track *track = input.subtitleTrack;
-	return track ? track->pid : 0;
-}
-
-int Player::GetTeletextPid()
-{
-	Track *track = input.teletextTrack;
 	return track ? track->pid : 0;
 }
 

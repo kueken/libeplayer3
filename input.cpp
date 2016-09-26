@@ -48,7 +48,6 @@ Input::Input()
 	videoTrack = NULL;
 	audioTrack = NULL;
 	subtitleTrack = NULL;
-	teletextTrack = NULL;
 
 	hasPlayThreadStarted = 0;
 	seek_avts_abs = INT64_MIN;
@@ -79,8 +78,6 @@ int64_t Input::calcPts(AVStream * stream, int64_t pts)
 extern void dvbsub_write(AVSubtitle *, int64_t);
 extern void dvbsub_ass_write(AVCodecContext *c, AVSubtitle *sub, int pid);
 extern void dvbsub_ass_clear(void);
-// from neutrino-mp/lib/lib/libtuxtxt/tuxtxt_common.h
-extern void teletext_write(int pid, uint8_t *data, int size);
 
 static std::string lastlog_message;
 static unsigned int lastlog_repeats;
@@ -206,7 +203,6 @@ bool Input::Play()
 		Track *_videoTrack = videoTrack;
 		Track *_audioTrack = audioTrack;
 		Track *_subtitleTrack = subtitleTrack;
-		Track *_teletextTrack = teletextTrack;
 
 		if (_videoTrack && (_videoTrack->stream == stream)) {
 			int64_t pts = calcPts(stream, packet.pts);
@@ -249,9 +245,6 @@ bool Input::Play()
 					}
 				}
 			}
-		} else if (_teletextTrack && (_teletextTrack->stream == stream)) {
-			if (packet.data && packet.size > 1)
-				teletext_write(_teletextTrack->pid, packet.data + 1, packet.size - 1);
 		}
 		av_packet_unref(&packet);
 	} /* while */
@@ -408,7 +401,6 @@ bool Input::Init(const char *filename, std::string headers)
 	videoTrack = NULL;
 	audioTrack = NULL;
 	subtitleTrack = NULL;
-	teletextTrack = NULL;
 
 #if 0
 again:
@@ -558,32 +550,18 @@ bool Input::UpdateTracks()
 					audioTrack = player->manager.getAudioTrack(track.pid);
 				break;
 			case AVMEDIA_TYPE_SUBTITLE:
-				if (stream->codec->codec_id == AV_CODEC_ID_DVB_TELETEXT) {
-					std::string l = lang ? lang->value : "";
-					uint8_t *data = stream->codec->extradata;
-					int size = stream->codec->extradata_size;
-					if (size > 0 && 2 * size - 1 == (int) l.length())
-						for (int i = 0; i < size; i += 2) {
-							track.title = l.substr(i * 2, 3);
-							track.type = data[i] >> 3;
-							track.mag = data[i] & 7;
-							track.page = data[i + 1];
-							player->manager.addTeletextTrack(track);
-						}
-				} else {
-					if (!stream->codec->codec) {
-						stream->codec->codec = avcodec_find_decoder(stream->codec->codec_id);
-						if (!stream->codec->codec)
-							fprintf(stderr, "avcodec_find_decoder failed for subtitle track %d\n", n);
-						else {
-							int err = avcodec_open2(stream->codec, stream->codec->codec, NULL);
-							if (averror(err, avcodec_open2))
-								stream->codec->codec = NULL;
-						}
+				if (!stream->codec->codec) {
+					stream->codec->codec = avcodec_find_decoder(stream->codec->codec_id);
+					if (!stream->codec->codec)
+						fprintf(stderr, "avcodec_find_decoder failed for subtitle track %d\n", n);
+					else {
+						int err = avcodec_open2(stream->codec, stream->codec->codec, NULL);
+						if (averror(err, avcodec_open2))
+							stream->codec->codec = NULL;
 					}
-					if (stream->codec->codec)
-						player->manager.addSubtitleTrack(track);
 				}
+				if (stream->codec->codec)
+					player->manager.addSubtitleTrack(track);
 				break;
 			default:
 				fprintf(stderr, "not handled or unknown codec_type %d\n", stream->codec->codec_type);
@@ -673,12 +651,6 @@ bool Input::SwitchAudio(Track *track)
 bool Input::SwitchSubtitle(Track *track)
 {
 	subtitleTrack = track;
-	return true;
-}
-
-bool Input::SwitchTeletext(Track *track)
-{
-	teletextTrack = track;
 	return true;
 }
 
