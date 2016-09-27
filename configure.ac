@@ -1,4 +1,4 @@
-AC_INIT([ibeplayer3], [1.0])
+AC_INIT([libeplayer3], [3.0])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 LT_INIT
