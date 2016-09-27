@@ -145,10 +145,8 @@ bool Player::Play()
 	return ret;
 }
 
-bool Player::Pause()
+int Player::Pause()
 {
-	bool ret = true;
-
 	if (isPlaying && !isPaused) {
 
 		if (isSlowMotion)
@@ -167,15 +165,13 @@ bool Player::Pause()
 		Speed = 1;
 	} else {
 		fprintf(stderr,"playback not playing or already in pause mode\n");
-		ret = false;
+		return -1;
 	}
-	return ret;
+	return 0;
 }
 
-bool Player::Continue()
+int Player::Continue()
 {
-	int ret = true;
-
 	if (isPlaying && (isPaused || isForwarding || isBackWard || isSlowMotion)) {
 
 		if (isSlowMotion)
@@ -194,10 +190,10 @@ bool Player::Continue()
 		Speed = 1;
 	} else {
 		fprintf(stderr,"continue not possible\n");
-		ret = false;
+		return -1;
 	}
 
-	return ret;
+	return 0;
 }
 
 bool Player::Stop()
@@ -229,16 +225,14 @@ bool Player::Stop()
 	return ret;
 }
 
-bool Player::FastForward(int speed)
+int Player::FastForward(int speed)
 {
-	int ret = true;
-
 	/* Audio only forwarding not supported */
 	if (input.videoTrack && !isHttp && !isBackWard && (!isPaused ||  isPlaying)) {
 
 		if ((speed <= 0) || (speed > cMaxSpeed_ff)) {
 			fprintf(stderr, "speed %d out of range (1 - %d) \n", speed, cMaxSpeed_ff);
-			return false;
+			return -1;
 		}
 
 		isForwarding = 1;
@@ -246,22 +240,22 @@ bool Player::FastForward(int speed)
 		output.FastForward(speed);
 	} else {
 		fprintf(stderr,"fast forward not possible\n");
-		ret = false;
+		return -1;
 	}
 
-	return ret;
+	return 0;
 }
 
-bool Player::FastBackward(int speed)
+int Player::FastBackward(int speed)
 {
-	bool ret = true;
+	int ret = 0;
 
 	/* Audio only reverse play not supported */
 	if (input.videoTrack && !isForwarding && (!isPaused || isPlaying)) {
 
 		if ((speed > 0) || (speed < cMaxSpeed_fr)) {
 			fprintf(stderr, "speed %d out of range (0 - %d) \n", speed, cMaxSpeed_fr);
-			return false;
+			return -1;
 		}
 
 		if (speed == 0) {
@@ -278,12 +272,12 @@ bool Player::FastBackward(int speed)
 			fprintf(stderr,"OUTPUT_REVERSE failed\n");
 			isBackWard = false;
 			Speed = 1;
-			ret = false;
+			ret = -1;
 		}
 #endif
 	} else {
 		fprintf(stderr,"fast backward not possible\n");
-		ret = false;
+		ret = -1;
 	}
 
 	if (isBackWard)

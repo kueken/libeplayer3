@@ -96,14 +96,14 @@ class Player {
 
 		bool GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values);
 		bool SlowMotion(int repeats);
-		bool FastBackward(int speed);
-		bool FastForward(int speed);
+		int FastBackward(int speed);
+		int FastForward(int speed);
 
 		bool Open(const char *Url, bool noprobe = false, std::string headers = "");
 		bool Close();
 		bool Play();
-		bool Pause();
-		bool Continue();
+		int Pause();
+		int Continue();
 		bool Stop();
 		bool Seek(int64_t pos, bool absolute);
 		void RequestAbort();
