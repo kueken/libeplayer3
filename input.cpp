@@ -47,9 +47,7 @@ Input::Input()
 {
 	videoTrack = NULL;
 	audioTrack = NULL;
-#if 0
 	subtitleTrack = NULL;
-#endif
 
 	hasPlayThreadStarted = 0;
 	seek_avts_abs = INT64_MIN;
@@ -412,9 +410,7 @@ bool Input::Init(const char *filename, std::string headers)
 
 	videoTrack = NULL;
 	audioTrack = NULL;
-#if 0
 	subtitleTrack = NULL;
-#endif
 
 #if 0
 again:
@@ -666,13 +662,11 @@ bool Input::SwitchAudio(Track *track)
 	return true;
 }
 
-#if 0
 bool Input::SwitchSubtitle(Track *track)
 {
 	subtitleTrack = track;
 	return true;
 }
-#endif
 
 bool Input::SwitchVideo(Track *track)
 {
