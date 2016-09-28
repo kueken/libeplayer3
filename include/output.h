@@ -50,6 +50,7 @@ class Output
 		Mutex audioMutex, videoMutex;
 		AVStream *audioStream, *videoStream;
 		Player *player;
+		bool GetEvent();
 	public:
 		Output();
 		~Output();
@@ -72,6 +73,18 @@ class Output
 		bool SwitchAudio(AVStream *stream);
 		bool SwitchVideo(AVStream *stream);
 		bool Write(AVStream *stream, AVPacket *packet, int64_t Pts);
+		struct DVBApiVideoInfo
+		{
+			int width;
+			int height;
+			int frame_rate;
+			int progressive;
+			DVBApiVideoInfo()
+			:width(-1), height(-1), frame_rate(-1), progressive(-1)
+			{
+			}
+		};
+		DVBApiVideoInfo videoInfo;
 };
 
 #endif

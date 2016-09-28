@@ -35,6 +35,7 @@
 #include <asm/types.h>
 #include <pthread.h>
 #include <errno.h>
+#include <poll.h>
 
 #include "player.h"
 #include "output.h"
@@ -43,6 +44,9 @@
 #include "pes.h"
 
 static const char *FILENAME = "eplayer/output.cpp";
+
+/* Send message to enigma2 */
+extern void libeplayerMessage(int);
 
 #define dioctl(fd,req,arg) ({		\
 	int _r = ioctl(fd,req,arg); \
@@ -345,12 +349,49 @@ bool Output::SwitchVideo(AVStream *stream)
 	return true;
 }
 
+bool Output::GetEvent()
+{
+	struct pollfd pfd[1];
+	pfd[0].fd = videofd;
+	pfd[0].events = POLLPRI;
+	int pollret = poll(pfd, 1, 0);
+	if (pollret > 0 && pfd[0].revents & POLLPRI)
+	{
+		struct video_event evt;
+		if (ioctl(videofd, VIDEO_GET_EVENT, &evt) == -1) {
+			fprintf(stderr, "ioctl failed with errno %d\n", errno);
+			fprintf(stderr, "VIDEO_GET_EVENT: %s\n", strerror(errno));
+		}
+		else {
+			int msg = 0;
+			if (evt.type == VIDEO_EVENT_SIZE_CHANGED) {
+				videoInfo.width = evt.u.size.w;
+				videoInfo.height = evt.u.size.h;
+				msg = 2;
+			}
+			else if (evt.type == VIDEO_EVENT_FRAME_RATE_CHANGED) {
+				videoInfo.frame_rate = evt.u.frame_rate;
+				msg = 3;
+			}
+			else if (evt.type == 16 /*VIDEO_EVENT_PROGRESSIVE_CHANGED*/) {
+				videoInfo.progressive = evt.u.frame_rate;
+				msg = 4;
+			}
+
+			if (msg) {
+				libeplayerMessage(msg);
+			}
+		}
+	}
+	return true;
+}
+
 bool Output::Write(AVStream *stream, AVPacket *packet, int64_t pts)
 {
 	switch (stream->codec->codec_type) {
 		case AVMEDIA_TYPE_VIDEO: {
 			ScopedLock v_lock(videoMutex);
-			return videofd > -1 && videoWriter && videoWriter->Write(packet, pts);
+			return videofd > -1 && videoWriter && videoWriter->Write(packet, pts) && GetEvent();
 		}
 		case AVMEDIA_TYPE_AUDIO: {
 			ScopedLock a_lock(audioMutex);
