@@ -36,6 +36,7 @@ extern "C" {
 #include <linux/dvb/stm_ioctls.h>
 
 #define AV_CODEC_ID_INJECTPCM AV_CODEC_ID_PCM_S16LE
+#define AV_CODEC_ID_AAC_RESAMPLE AV_CODEC_ID_AAC
 
 class Player;
 

@@ -227,6 +227,8 @@ void WriterPCM::Init(int _fd, AVStream *_stream, Player *_player)
 	player = _player;
 	initialHeader = true;
 	restart_audio_resampling = true;
+	if (stream->codec->codec_id == AV_CODEC_ID_AAC_RESAMPLE)
+		stream->codec->codec_id = AV_CODEC_ID_AAC;
 }
 
 bool WriterPCM::Write(AVPacket *packet, int64_t pts)

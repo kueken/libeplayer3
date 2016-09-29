@@ -436,9 +436,21 @@ bool Input::UpdateTracks()
 					case AV_CODEC_ID_DTS:
 						track.type = 6;
 						break;
-					case AV_CODEC_ID_AAC:
-						track.type = 5;
+					case AV_CODEC_ID_AAC: {
+						unsigned int extradata_size = stream->codec->extradata_size;
+						unsigned int object_type = 2;
+						if(extradata_size >= 2) {
+							object_type = stream->codec->extradata[0] >> 3;
+						}
+						if (extradata_size <= 1 || object_type == 1 || object_type == 5) {
+							fprintf(stderr, "Use resampling for AAC\n");
+							stream->codec->codec_id = AV_CODEC_ID_AAC_RESAMPLE;
+							track.type = 0;
+						}
+						else
+							track.type = 5;
 						break;
+					}
 					default:
 						track.type = 0;
 				}
