@@ -52,7 +52,6 @@ void Manager::addSubtitleTrack(Track &track)
 
 std::vector<Track> Manager::getTracks(std::map<int,Track*> &tracks)
 {
-	player->input.UpdateTracks();
 	std::vector<Track> res;
 	ScopedLock m_lock(mutex);
 	for(std::map<int,Track*>::iterator it = tracks.begin(); it != tracks.end(); ++it)

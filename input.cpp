@@ -74,13 +74,6 @@ int64_t Input::calcPts(AVStream * stream, int64_t pts)
 	return pts;
 }
 
-#if 0
-// from neutrino-mp/lib/libdvbsubtitle/dvbsub.cpp
-extern void dvbsub_write(AVSubtitle *, int64_t);
-extern void dvbsub_ass_write(AVCodecContext *c, AVSubtitle *sub, int pid);
-extern void dvbsub_ass_clear(void);
-#endif
-
 static std::string lastlog_message;
 static unsigned int lastlog_repeats;
 
@@ -204,9 +197,7 @@ bool Input::Play()
 		AVStream *stream = avfc->streams[packet.stream_index];
 		Track *_videoTrack = videoTrack;
 		Track *_audioTrack = audioTrack;
-#if 0
 		Track *_subtitleTrack = subtitleTrack;
-#endif
 
 		if (_videoTrack && (_videoTrack->stream == stream)) {
 			int64_t pts = calcPts(stream, packet.pts);
@@ -223,34 +214,10 @@ bool Input::Play()
 					logprintf("writing data to %s device failed\n", "audio");
 			}
 			audioSeen = true;
-#if 0
 		} else if (_subtitleTrack && (_subtitleTrack->stream == stream)) {
-			if (stream->codec->codec) {
-				AVSubtitle sub;
-				memset(&sub, 0, sizeof(sub));
-				int got_sub_ptr = 0;
-
-				err = avcodec_decode_subtitle2(stream->codec, &sub, &got_sub_ptr, &packet);
-				averror(err, avcodec_decode_subtitle2);
-
-				if (got_sub_ptr && sub.num_rects > 0) {
-					switch (sub.rects[0]->type) {
-						case SUBTITLE_TEXT: // FIXME?
-						case SUBTITLE_ASS:
-							dvbsub_ass_write(stream->codec, &sub, _subtitleTrack->pid);
-							break;
-						case SUBTITLE_BITMAP: {
-							int64_t pts = calcPts(stream, packet.pts);
-							dvbsub_write(&sub, pts);
-							// avsubtitle_free() will be called by handler
-							break;
-						}
-						default:
-							break;
-					}
-				}
-			}
-#endif
+			int64_t pts = calcPts(stream, packet.pts);
+			if (audioSeen && !player->output.WriteSubtitle(stream, &packet, pts))
+				logprintf("writing data to %s device failed\n", "subtitle");
 		}
 		av_packet_unref(&packet);
 	} /* while */
@@ -260,9 +227,6 @@ bool Input::Play()
 	else
 		player->output.Flush();
 
-#if 0
-	dvbsub_ass_clear();
-#endif
 	abortPlayback = true;
 	hasPlayThreadStarted = false;
 
@@ -298,81 +262,6 @@ static int lock_callback(void **mutex, enum AVLockOp op)
 			return -1;
 	}
 }
-
-#if 0
-bool Input::ReadSubtitle(const char *filename, const char *format, int pid)
-{
-	const char *lastDot = strrchr(filename, '.');
-	if (!lastDot)
-		return false;
-	char subfile[strlen(filename) + strlen(format)];
-	strcpy(subfile, filename);
-	strcpy(subfile + (lastDot + 1 - filename), format);
-
-	if (access(subfile, R_OK))
-		return false;
-
-	AVFormatContext *subavfc = avformat_alloc_context();
-	int err = avformat_open_input(&subavfc, subfile, av_find_input_format(format), 0);
-	if (averror(err, avformat_open_input)) {
-		avformat_free_context(subavfc);
-		return false;
-	}
-
-	avformat_find_stream_info(subavfc, NULL);
-	if (subavfc->nb_streams != 1) {
-		avformat_free_context(subavfc);
-		return false;
-	}
-
-	AVCodecContext *c = subavfc->streams[0]->codec;
-	AVCodec *codec = avcodec_find_decoder(c->codec_id);
-	if (!codec) {
-		avformat_free_context(subavfc);
-		return false;
-	}
-
-	err = avcodec_open2(c, codec, NULL);
-	if (averror(err, avcodec_open2)) {
-		avformat_free_context(subavfc);
-		return false;
-	}
-
-	AVPacket packet;
-	av_init_packet(&packet);
-
-	while (av_read_frame(subavfc, &packet) > -1) {
-		AVSubtitle sub;
-		memset(&sub, 0, sizeof(sub));
-		int got_sub = 0;
-		avcodec_decode_subtitle2(c, &sub, &got_sub, &packet);
-		if (got_sub)
-			dvbsub_ass_write(c, &sub, pid);
-		av_packet_unref(&packet);
-	}
-	avcodec_close(c);
-	avformat_close_input(&subavfc);
-	avformat_free_context(subavfc);
-
-	Track track;
-	track.title = format;
-	track.is_static = 1;
-	track.pid = pid;
-	player->manager.addSubtitleTrack(track);
-	return true;
-}
-
-bool Input::ReadSubtitles(const char *filename) {
-	if (strncmp(filename, "file://", 7))
-		return false;
-	filename += 7;
-	bool ret = false;
-	ret |= ReadSubtitle(filename, "srt", 0xFFFF);
-	ret |= ReadSubtitle(filename, "ass", 0xFFFE);
-	ret |= ReadSubtitle(filename, "ssa", 0xFFFD);
-	return ret;
-}
-#endif
 
 bool Input::Init(const char *filename, std::string headers)
 {
@@ -478,10 +367,6 @@ again:
 	if (audioTrack)
 		player->output.SwitchAudio(audioTrack->stream);
 
-#if 0
-	ReadSubtitles(filename);
-#endif
-
 	return res;
 }
 
@@ -537,46 +422,56 @@ bool Input::UpdateTracks()
 			case AVMEDIA_TYPE_AUDIO:
 				switch(stream->codec->codec_id) {
 					case AV_CODEC_ID_MP2:
-						track.ac3flags = 9;
+						track.type = 9;
 						break;
 					case AV_CODEC_ID_MP3:
-						track.ac3flags = 4;
+						track.type = 4;
 						break;
 					case AV_CODEC_ID_AC3:
-						track.ac3flags = 1;
+						track.type = 1;
 						break;
 					case AV_CODEC_ID_EAC3:
-						track.ac3flags = 7;
+						track.type = 7;
 						break;
 					case AV_CODEC_ID_DTS:
-						track.ac3flags = 6;
+						track.type = 6;
 						break;
 					case AV_CODEC_ID_AAC:
-						track.ac3flags = 5;
+						track.type = 5;
 						break;
 					default:
-						track.ac3flags = 0;
+						track.type = 0;
 				}
 				player->manager.addAudioTrack(track);
 				if (!audioTrack)
 					audioTrack = player->manager.getAudioTrack(track.pid);
 				break;
-#if 0
 			case AVMEDIA_TYPE_SUBTITLE:
-				if (!stream->codec->codec) {
-					stream->codec->codec = avcodec_find_decoder(stream->codec->codec_id);
-					if (!stream->codec->codec)
-						fprintf(stderr, "avcodec_find_decoder failed for subtitle track %d\n", n);
-					else {
-						int err = avcodec_open2(stream->codec, stream->codec->codec, NULL);
-						if (averror(err, avcodec_open2))
-							stream->codec->codec = NULL;
-					}
+				switch(stream->codec->codec_id) {
+					case AV_CODEC_ID_SRT:
+					case AV_CODEC_ID_SUBRIP:
+						 track.type = 4;
+						 break;
+					case AV_CODEC_ID_ASS:
+						 track.type = 3;
+						 break;
+					case AV_CODEC_ID_SSA:
+						 track.type = 2;
+						 break;
+					case AV_CODEC_ID_TEXT:
+					case AV_CODEC_ID_DVD_SUBTITLE:
+					case AV_CODEC_ID_DVB_SUBTITLE:
+					case AV_CODEC_ID_XSUB:
+					case AV_CODEC_ID_MOV_TEXT:
+					case AV_CODEC_ID_HDMV_PGS_SUBTITLE:
+					case AV_CODEC_ID_DVB_TELETEXT:
+						 track.type = 1;
+						 break;
+					default:
+						track.type = 0;
 				}
-				if (stream->codec->codec)
-					player->manager.addSubtitleTrack(track);
+				player->manager.addSubtitleTrack(track);
 				break;
-#endif
 			default:
 				fprintf(stderr, "not handled or unknown codec_type %d\n", stream->codec->codec_type);
 				break;

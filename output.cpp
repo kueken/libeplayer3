@@ -363,26 +363,47 @@ bool Output::GetEvent()
 			fprintf(stderr, "VIDEO_GET_EVENT: %s\n", strerror(errno));
 		}
 		else {
-			int msg = 0;
 			if (evt.type == VIDEO_EVENT_SIZE_CHANGED) {
 				videoInfo.width = evt.u.size.w;
 				videoInfo.height = evt.u.size.h;
-				msg = 2;
+				libeplayerMessage(2);
 			}
 			else if (evt.type == VIDEO_EVENT_FRAME_RATE_CHANGED) {
 				videoInfo.frame_rate = evt.u.frame_rate;
-				msg = 3;
+				libeplayerMessage(3);
 			}
 			else if (evt.type == 16 /*VIDEO_EVENT_PROGRESSIVE_CHANGED*/) {
 				videoInfo.progressive = evt.u.frame_rate;
-				msg = 4;
-			}
-
-			if (msg) {
-				libeplayerMessage(msg);
+				libeplayerMessage(4);
 			}
 		}
 	}
+	return true;
+}
+
+bool Output::WriteSubtitle(AVStream *stream, AVPacket *packet, int64_t pts)
+{
+	ScopedLock s_lock(subtitleMutex);
+	int64_t duration = 0;
+	if(packet->duration != 0) {
+		duration = av_rescale(packet->duration, (int64_t)stream->time_base.num * 1000, stream->time_base.den);
+	}
+	else if(packet->convergence_duration != 0 && packet->convergence_duration != AV_NOPTS_VALUE) {
+		duration = av_rescale(packet->convergence_duration, (int64_t)stream->time_base.num * 1000, stream->time_base.den);
+	}
+
+	if (!duration || !packet->data)
+		return false;
+
+	subtitleData sub;
+	sub.start_ms = pts  / 90;
+	sub.duration_ms = duration;
+	sub.end_ms = sub.start_ms + sub.duration_ms;
+	sub.text = (const char *)packet->data;
+
+	embedded_subtitle.insert(std::pair<uint32_t, subtitleData>(sub.end_ms, sub));
+	libeplayerMessage(0);
+
 	return true;
 }
 
@@ -396,6 +417,10 @@ bool Output::Write(AVStream *stream, AVPacket *packet, int64_t pts)
 		case AVMEDIA_TYPE_AUDIO: {
 			ScopedLock a_lock(audioMutex);
 			return audiofd > -1 && audioWriter && audioWriter->Write(packet, pts);
+		}
+		case AVMEDIA_TYPE_SUBTITLE: {
+			ScopedLock s_lock(subtitleMutex);
+			return videofd > -1 && WriteSubtitle(stream, packet, pts);
 		}
 		default:
 			return false;

@@ -37,6 +37,16 @@ extern "C" {
 #include "writer.h"
 #include "libthread.h"
 
+struct subtitleData
+{
+	uint32_t start_ms;
+	uint32_t duration_ms;
+	uint32_t end_ms;
+	std::string text;
+	subtitleData()
+		:start_ms(0), duration_ms(0), end_ms(0){}
+};
+
 class Player;
 
 class Output
@@ -47,7 +57,7 @@ class Output
 		int videofd;
 		int audiofd;
 		Writer *videoWriter, *audioWriter;
-		Mutex audioMutex, videoMutex;
+		Mutex audioMutex, videoMutex, subtitleMutex;
 		AVStream *audioStream, *videoStream;
 		Player *player;
 		bool GetEvent();
@@ -73,6 +83,8 @@ class Output
 		bool SwitchAudio(AVStream *stream);
 		bool SwitchVideo(AVStream *stream);
 		bool Write(AVStream *stream, AVPacket *packet, int64_t Pts);
+		bool WriteSubtitle(AVStream *stream, AVPacket *packet, int64_t pts);
+
 		struct DVBApiVideoInfo
 		{
 			int width;
@@ -80,11 +92,12 @@ class Output
 			int frame_rate;
 			int progressive;
 			DVBApiVideoInfo()
-			:width(-1), height(-1), frame_rate(-1), progressive(-1)
-			{
-			}
+				:width(-1), height(-1), frame_rate(-1), progressive(-1){}
 		};
+
 		DVBApiVideoInfo videoInfo;
+		typedef std::map<uint32_t, subtitleData> subtitleMap;
+		subtitleMap embedded_subtitle;
 };
 
 #endif
