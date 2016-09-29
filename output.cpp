@@ -381,6 +381,29 @@ bool Output::GetEvent()
 	return true;
 }
 
+const char *Output::ass_get_text(char *str)
+{
+	/*
+	ReadOrder, Layer, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+	91,0,Default,,0,0,0,,maar hij smaakt vast tof.
+	*/
+
+	int i = 0;
+	char *p_str = str;
+	while(i < 8 && *p_str != '\0')
+	{
+		if (*p_str == ',')
+			i++;
+		p_str++;
+	}
+
+	/* standardize hard break: '\N' -> '\n' http://docs.aegisub.org/3.2/ASS_Tags/ */
+	char *p_newline = NULL;
+	while((p_newline = strstr(p_str, "\\N")) != NULL)
+		*(p_newline + 1) = 'n';
+	return p_str;
+}
+
 bool Output::WriteSubtitle(AVStream *stream, AVPacket *packet, int64_t pts)
 {
 	ScopedLock s_lock(subtitleMutex);
@@ -399,7 +422,14 @@ bool Output::WriteSubtitle(AVStream *stream, AVPacket *packet, int64_t pts)
 	sub.start_ms = pts  / 90;
 	sub.duration_ms = duration;
 	sub.end_ms = sub.start_ms + sub.duration_ms;
-	sub.text = (const char *)packet->data;
+	switch(stream->codec->codec_id) {
+		case AV_CODEC_ID_ASS:
+		case AV_CODEC_ID_SSA:
+			sub.text = ass_get_text((char *)packet->data);
+			break;
+		default:
+			sub.text = (const char *)packet->data;
+	}
 
 	embedded_subtitle.insert(std::pair<uint32_t, subtitleData>(sub.end_ms, sub));
 	libeplayerMessage(0);

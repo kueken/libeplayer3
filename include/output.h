@@ -61,6 +61,7 @@ class Output
 		AVStream *audioStream, *videoStream;
 		Player *player;
 		bool GetEvent();
+		const char *ass_get_text(char *str);
 	public:
 		Output();
 		~Output();
