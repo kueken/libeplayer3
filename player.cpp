@@ -199,6 +199,7 @@ int Player::Continue()
 bool Player::Stop()
 {
 	bool ret = true;
+	int wait_time = 20;
 
 	if (isPlaying) {
 		isPaused = false;
@@ -219,8 +220,13 @@ bool Player::Stop()
 		ret = false;
 	}
 
-	while (hasThreadStarted)
+	while (hasThreadStarted && (--wait_time) > 0)
 		usleep(100000);
+
+	if (wait_time == 0) {
+		fprintf(stderr,"timeout waiting for thread stop\n");
+		ret = false;
+	}
 
 	return ret;
 }

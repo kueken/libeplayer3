@@ -512,10 +512,14 @@ bool Input::UpdateTracks()
 
 bool Input::Stop()
 {
+	int wait_time = 20;
 	abortPlayback = true;
 
-	while (hasPlayThreadStarted != 0)
+	while (hasPlayThreadStarted != 0 && (--wait_time) > 0)
 		usleep(100000);
+
+	if (wait_time == 0)
+		fprintf(stderr,"timeout waiting for thread stop in input\n");
 
 	av_log(NULL, AV_LOG_QUIET, "%s", "");
 
