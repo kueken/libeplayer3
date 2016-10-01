@@ -65,12 +65,11 @@ void *Player::playthread(void *arg)
 	pthread_exit(NULL);
 }
 
-bool Player::Open(const char *Url, bool _noprobe, std::string headers)
+bool Player::Open(const char *Url, bool _isHttp, std::string headers)
 {
 	fprintf(stderr, "URL=%s\n", Url);
 
-	isHttp = false;
-	noprobe = _noprobe;
+	isHttp = _isHttp;
 	abortRequested = false;
 
 	manager.clearTracks();
@@ -79,15 +78,13 @@ bool Player::Open(const char *Url, bool _noprobe, std::string headers)
 		url = "mmst";
 		url += Url + 3;
 		isHttp = true;
-	} else if (strstr(Url, "://")) {
-		url = Url;
-		isHttp = strncmp("file://", Url, 7);
-	} else if (!strncmp(Url, "bluray:/", 8)) {
-		url = Url;
-	} else {
-		fprintf(stderr, "%s %s %d: Unknown stream (%s)\n", FILENAME, __func__, __LINE__, Url);
-		return false;
 	}
+	else if (!strncmp("myts://", Url, 7)) {
+		url = "file";
+		url += Url + 4;
+	}
+	else
+		url = Url;
 
 	return input.Init(url.c_str(), headers);
 }

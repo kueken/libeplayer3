@@ -77,7 +77,6 @@ class Player {
 		uint64_t readCount;
 
 		std::string url;
-		bool noprobe;	/* hack: only minimal probing in av_find_stream_info */
 
 		void SetChapters(std::vector<Chapter> &Chapters);
 		static void* playthread(void*);
@@ -99,7 +98,7 @@ class Player {
 		int FastBackward(int speed);
 		int FastForward(int speed);
 
-		bool Open(const char *Url, bool noprobe = false, std::string headers = "");
+		bool Open(const char *Url, bool _isHttp = false, std::string headers = "");
 		bool Close();
 		bool Play();
 		int Pause();

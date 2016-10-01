@@ -265,7 +265,7 @@ static int lock_callback(void **mutex, enum AVLockOp op)
 
 bool Input::Init(const char *filename, std::string headers)
 {
-	bool find_info = true;
+	bool noprobe = true;
 	abortPlayback = false;
 	av_lockmgr_register(lock_callback);
 #if ENABLE_LOGGING
@@ -293,7 +293,6 @@ bool Input::Init(const char *filename, std::string headers)
 		fprintf(stderr, "%s %s %d: %s\n", FILENAME, __func__, __LINE__, filename);
 	}
 
-	avcodec_register_all();
 	av_register_all();
 	avformat_network_init();
 
@@ -301,12 +300,20 @@ bool Input::Init(const char *filename, std::string headers)
 	audioTrack = NULL;
 	subtitleTrack = NULL;
 
-#if 0
 again:
-#endif
 	avfc = avformat_alloc_context();
+	if (!avfc) {
+		fprintf(stderr, "context alloc failed\n");
+		avformat_network_deinit();
+		return false;
+	}
+
 	avfc->interrupt_callback.callback = interrupt_cb;
 	avfc->interrupt_callback.opaque = (void *) player;
+	avfc->flags |= AVFMT_FLAG_GENPTS;
+
+	if (player->isHttp)
+		avfc->flags |= AVFMT_FLAG_NONBLOCK | AVIO_FLAG_NONBLOCK | AVFMT_NO_BYTE_SEEK;
 
 	AVDictionary *options = NULL;
 	av_dict_set(&options, "auth_type", "basic", 0);
@@ -323,42 +330,32 @@ again:
 #endif
 	av_dict_free(&options);
 	if (averror(err, avformat_open_input)) {
-		avformat_free_context(avfc);
+		avformat_close_input(&avfc);
+		avformat_network_deinit();
 		return false;
 	}
 
 	avfc->iformat->flags |= AVFMT_SEEK_TO_PTS;
-	avfc->flags = AVFMT_FLAG_GENPTS;
-	if (player->noprobe) {
-		avfc->max_analyze_duration = 1;
-		avfc->probesize = 131072;
-	}
 
-	if (!player->isHttp)
-	{
-		for (unsigned int i = 0; i < avfc->nb_streams; i++) {
-			if (avfc->streams[i]->codec->codec_id == AV_CODEC_ID_AAC)
-				find_info = false;
-		}
-	}
-	if (find_info)
-		err = avformat_find_stream_info(avfc, NULL);
+	if (player->isHttp && noprobe)
+		avfc->max_analyze_duration = 1 * AV_TIME_BASE;
+	else
+		avfc->max_analyze_duration = 0;
 
-#if 0
-	if (averror(err, avformat_find_stream_info)) {
+	err = avformat_find_stream_info(avfc, NULL);
+
+	if (averror(err, avformat_find_stream_info) && noprobe) {
+		fprintf(stderr, "try again with default probe size\n");
 		avformat_close_input(&avfc);
-		if (player->noprobe) {
-			player->noprobe = false;
-			goto again;
-		}
-		return false;
+		noprobe = false;
+		goto again;
 	}
-#endif
 
 	bool res = UpdateTracks();
 
 	if (!videoTrack && !audioTrack) {
 		avformat_close_input(&avfc);
+		avformat_network_deinit();
 		return false;
 	}
 
