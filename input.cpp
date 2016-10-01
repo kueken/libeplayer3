@@ -399,6 +399,10 @@ bool Input::UpdateTracks()
 		track.stream = stream;
 		AVDictionaryEntry *lang = av_dict_get(stream->metadata, "language", NULL, 0);
 		track.title = lang ? lang->value : "";
+		if(stream->duration != AV_NOPTS_VALUE)
+			track.duration = stream->duration * av_q2d(stream->time_base) * AV_TIME_BASE;
+		else
+			track.duration = avfc->duration;
 
 		if (!use_index_as_pid)
 			switch (stream->codec->codec_type) {
@@ -553,10 +557,19 @@ bool Input::Seek(int64_t avts, bool absolute)
 
 bool Input::GetDuration(int64_t &duration)
 {
-	if (avfc) {
-		duration = avfc->duration;
+	if (videoTrack && videoTrack->duration) {
+		duration = videoTrack->duration;
 		return true;
 	}
+	else if (audioTrack && audioTrack->duration) {
+		duration = audioTrack->duration;
+		return true;
+	}
+	else if (subtitleTrack && subtitleTrack->duration) {
+		duration = subtitleTrack->duration;
+		return true;
+	}
+
 	duration = 0;
 	return false;
 }

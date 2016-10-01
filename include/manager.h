@@ -47,7 +47,8 @@ struct Track
 	bool hidden; // not part of currently selected program
 	bool is_static;
 	int type;
-	Track() : pid(-1), stream(NULL), inactive(false), hidden(false), is_static(false), type(0) {}
+	int64_t duration;
+	Track() : pid(-1), stream(NULL), inactive(false), hidden(false), is_static(false), type(0), duration(0) {}
 };
 
 struct Program
