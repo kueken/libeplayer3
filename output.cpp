@@ -242,6 +242,8 @@ bool Output::Flush()
 			ret = false;
 	}
 
+	libeplayerMessage(1); /* Tell enigma2 that we stop */
+
 	return ret;
 }
 
