@@ -411,6 +411,9 @@ bool Input::UpdateTracks()
 				break;
 			case AVMEDIA_TYPE_AUDIO:
 				switch(stream->codec->codec_id) {
+					case AV_CODEC_ID_MP2:
+						track.type = 1;
+						break;
 					case AV_CODEC_ID_MP3:
 						track.type = 2;
 						break;
@@ -419,16 +422,6 @@ bool Input::UpdateTracks()
 						break;
 					case AV_CODEC_ID_DTS:
 						track.type = 4;
-						break;
-					case AV_CODEC_ID_FLAC:
-						track.type = 8;
-						break;
-					case AV_CODEC_ID_WMAV1:
-					case AV_CODEC_ID_WMAV2:
-					case AV_CODEC_ID_WMAVOICE:
-					case AV_CODEC_ID_WMAPRO:
-					case AV_CODEC_ID_WMALOSSLESS:
-						track.type = 9;
 						break;
 					case AV_CODEC_ID_AAC: {
 						unsigned int extradata_size = stream->codec->extradata_size;
@@ -443,8 +436,18 @@ bool Input::UpdateTracks()
 							track.type = 5;
 						break;
 					}
+					case AV_CODEC_ID_FLAC:
+						track.type = 8;
+						break;
+					case AV_CODEC_ID_WMAV1:
+					case AV_CODEC_ID_WMAV2:
+					case AV_CODEC_ID_WMAVOICE:
+					case AV_CODEC_ID_WMAPRO:
+					case AV_CODEC_ID_WMALOSSLESS:
+						track.type = 9;
+						break;
 					default:
-						track.type = 6;
+						track.type = 0;
 				}
 				player->manager.addAudioTrack(track);
 				if (!audioTrack)
