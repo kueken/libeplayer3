@@ -92,8 +92,9 @@ class Output
 			int height;
 			int frame_rate;
 			int progressive;
+			int aspect;
 			DVBApiVideoInfo()
-				:width(-1), height(-1), frame_rate(-1), progressive(-1){}
+				:width(-1), height(-1), frame_rate(-1), progressive(-1), aspect(-1){}
 		};
 
 		DVBApiVideoInfo videoInfo;

@@ -372,8 +372,10 @@ bool Output::GetEvent()
 		}
 		else {
 			if (evt.type == VIDEO_EVENT_SIZE_CHANGED) {
+				videoInfo.aspect = evt.u.size.aspect_ratio == 0 ? 2 : 3;  // convert dvb api to etsi
 				videoInfo.width = evt.u.size.w;
 				videoInfo.height = evt.u.size.h;
+				fprintf(stderr, "aspect: %d\n", evt.u.size.aspect_ratio);
 				libeplayerMessage(2);
 			}
 			else if (evt.type == VIDEO_EVENT_FRAME_RATE_CHANGED) {
