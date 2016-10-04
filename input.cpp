@@ -393,7 +393,7 @@ bool Input::UpdateTracks()
 
 		Track track;
 		track.stream = stream;
-		track.pid = n + 1
+		track.pid = n + 1;
 		track.type = 0;
 		AVDictionaryEntry *lang = av_dict_get(stream->metadata, "language", NULL, 0);
 		track.title = lang ? lang->value : "";
