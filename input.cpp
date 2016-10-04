@@ -388,32 +388,20 @@ bool Input::UpdateTracks()
 
 	av_dump_format(avfc, 0, player->url.c_str(), 0);
 
-	bool use_index_as_pid = false;
 	for (unsigned int n = 0; n < avfc->nb_streams; n++) {
 		AVStream *stream = avfc->streams[n];
 
 		Track track;
 		track.stream = stream;
+		track.pid = n + 1
+		track.type = 0;
 		AVDictionaryEntry *lang = av_dict_get(stream->metadata, "language", NULL, 0);
 		track.title = lang ? lang->value : "";
+
 		if(stream->duration != AV_NOPTS_VALUE)
 			track.duration = stream->duration * av_q2d(stream->time_base) * AV_TIME_BASE;
 		else
 			track.duration = avfc->duration;
-
-		if (!use_index_as_pid)
-			switch (stream->codec->codec_type) {
-				case AVMEDIA_TYPE_VIDEO:
-				case AVMEDIA_TYPE_AUDIO:
-				case AVMEDIA_TYPE_SUBTITLE:
-					if (!stream->id)
-						use_index_as_pid = true;
-				default:
-					break;
-			}
-
-		track.pid = use_index_as_pid ? n + 1: stream->id;
-		track.type = 0;
 
 		switch (stream->codec->codec_type) {
 			case AVMEDIA_TYPE_VIDEO:
