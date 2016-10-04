@@ -202,7 +202,7 @@ bool Input::Play()
 		if (_videoTrack && (_videoTrack->stream == stream)) {
 			int64_t pts = calcPts(stream, packet.pts);
 			if (audioSeen && !player->output.Write(stream, &packet, pts))
-				logprintf("writing data to %s device failed\n", "video");
+				logprintf("writing data to video device failed\n");
 		} else if (_audioTrack && (_audioTrack->stream == stream)) {
 			if (restart_audio_resampling) {
 				restart_audio_resampling = false;
@@ -211,13 +211,13 @@ bool Input::Play()
 			if (!player->isBackWard) {
 				int64_t pts = calcPts(stream, packet.pts);
 				if (!player->output.Write(stream, &packet, _videoTrack ? pts : 0))
-					logprintf("writing data to %s device failed\n", "audio");
+					logprintf("writing data to audio device failed\n");
 			}
 			audioSeen = true;
 		} else if (_subtitleTrack && (_subtitleTrack->stream == stream)) {
 			int64_t pts = calcPts(stream, packet.pts);
 			if (audioSeen && !player->output.WriteSubtitle(stream, &packet, pts))
-				logprintf("writing data to %s device failed\n", "subtitle");
+				logprintf("writing data to subtitle device failed\n");
 		}
 		av_packet_unref(&packet);
 	} /* while */
@@ -360,9 +360,9 @@ again:
 	}
 
 	if (videoTrack)
-		player->output.SwitchVideo(videoTrack->stream);
+		player->output.SwitchVideo(videoTrack);
 	if (audioTrack)
-		player->output.SwitchAudio(audioTrack->stream);
+		player->output.SwitchAudio(audioTrack);
 
 	return res;
 }
@@ -413,6 +413,7 @@ bool Input::UpdateTracks()
 			}
 
 		track.pid = use_index_as_pid ? n + 1: stream->id;
+		track.type = 0;
 
 		switch (stream->codec->codec_type) {
 			case AVMEDIA_TYPE_VIDEO:
@@ -422,38 +423,40 @@ bool Input::UpdateTracks()
 				break;
 			case AVMEDIA_TYPE_AUDIO:
 				switch(stream->codec->codec_id) {
-					case AV_CODEC_ID_MP2:
-						track.type = 9;
-						break;
 					case AV_CODEC_ID_MP3:
-						track.type = 4;
+						track.type = 2;
 						break;
 					case AV_CODEC_ID_AC3:
-						track.type = 1;
-						break;
-					case AV_CODEC_ID_EAC3:
-						track.type = 7;
+						track.type = 3;
 						break;
 					case AV_CODEC_ID_DTS:
-						track.type = 6;
+						track.type = 4;
+						break;
+					case AV_CODEC_ID_FLAC:
+						track.type = 8;
+						break;
+					case AV_CODEC_ID_WMAV1:
+					case AV_CODEC_ID_WMAV2:
+					case AV_CODEC_ID_WMAVOICE:
+					case AV_CODEC_ID_WMAPRO:
+					case AV_CODEC_ID_WMALOSSLESS:
+						track.type = 9;
 						break;
 					case AV_CODEC_ID_AAC: {
 						unsigned int extradata_size = stream->codec->extradata_size;
 						unsigned int object_type = 2;
-						if(extradata_size >= 2) {
+						if(extradata_size >= 2)
 							object_type = stream->codec->extradata[0] >> 3;
-						}
 						if (extradata_size <= 1 || object_type == 1 || object_type == 5) {
-							fprintf(stderr, "Use resampling for AAC\n");
-							stream->codec->codec_id = AV_CODEC_ID_AAC_RESAMPLE;
-							track.type = 0;
+							fprintf(stderr, "use resampling for AAC\n");
+							track.type = 6;
 						}
 						else
 							track.type = 5;
 						break;
 					}
 					default:
-						track.type = 0;
+						track.type = 6;
 				}
 				player->manager.addAudioTrack(track);
 				if (!audioTrack)
@@ -578,7 +581,7 @@ bool Input::GetDuration(int64_t &duration)
 bool Input::SwitchAudio(Track *track)
 {
 	audioTrack = track;
-	player->output.SwitchAudio(track ? track->stream : NULL);
+	player->output.SwitchAudio(track ? track : NULL);
 	// player->Seek(-5000, false);
 	return true;
 }
@@ -592,7 +595,7 @@ bool Input::SwitchSubtitle(Track *track)
 bool Input::SwitchVideo(Track *track)
 {
 	videoTrack = track;
-	player->output.SwitchVideo(track ? track->stream : NULL);
+	player->output.SwitchVideo(track ? track : NULL);
 	return true;
 }
 

@@ -36,7 +36,6 @@ extern "C" {
 #include <linux/dvb/stm_ioctls.h>
 
 #define AV_CODEC_ID_INJECTPCM AV_CODEC_ID_PCM_S16LE
-#define AV_CODEC_ID_AAC_RESAMPLE AV_CODEC_ID_AAC
 
 class Player;
 
@@ -50,7 +49,7 @@ class Writer
 		static void Register(Writer *w, enum AVCodecID id, audio_encoding_t encoding);
 		static video_encoding_t GetVideoEncoding(enum AVCodecID id);
 		static audio_encoding_t GetAudioEncoding(enum AVCodecID id);
-		static Writer *GetWriter(enum AVCodecID id, enum AVMediaType codec_type);
+		static Writer *GetWriter(enum AVCodecID id, enum AVMediaType codec_type, int track_type);
 
 		virtual void Init(int _fd, AVStream * /*stream*/, Player *_player ) { fd = _fd; player = _player; }
 		virtual bool Write(AVPacket *packet, int64_t pts);
