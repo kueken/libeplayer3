@@ -77,7 +77,6 @@ bool Player::Open(const char *Url, bool _isHttp, std::string headers)
 	if (!strncmp("mms://", Url, 6)) {
 		url = "mmst";
 		url += Url + 3;
-		isHttp = true;
 	}
 	else if (!strncmp("myts://", Url, 7)) {
 		url = "file";
