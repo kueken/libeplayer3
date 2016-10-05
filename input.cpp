@@ -109,8 +109,7 @@ bool Input::Play()
 	bool bof = false;
 
 	// HACK: Dropping all video frames until the first audio frame was seen will keep player2 from stuttering.
-	//       Oddly, this seems to be necessary for network streaming only ...
-	bool audioSeen = !audioTrack || !player->isHttp;
+	bool audioSeen = !audioTrack;
 
 	while (player->isPlaying && !player->abortRequested) {
 
