@@ -391,6 +391,11 @@ bool Output::GetEvent()
 	return true;
 }
 
+void Output::sendLibeplayerMessage(int msg)
+{
+	libeplayerMessage(msg);
+}
+
 const char *Output::ass_get_text(char *str)
 {
 	/*

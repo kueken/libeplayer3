@@ -106,7 +106,7 @@ class Player {
 		bool Stop();
 		bool Seek(int64_t pos, bool absolute);
 		void RequestAbort();
-		bool GetChapters(std::vector<int> &positions, std::vector<std::string> &titles);
+		bool GetChapters(std::vector<int> &positions);
 
 		AVFormatContext *GetAVFormatContext() { return input.GetAVFormatContext(); }
 		void ReleaseAVFormatContext() { input.ReleaseAVFormatContext(); }

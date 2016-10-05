@@ -357,14 +357,12 @@ bool Player::GetMetadata(std::vector<std::string> &keys, std::vector<std::string
 	return input.GetMetadata(keys, values);
 }
 
-bool Player::GetChapters(std::vector<int> &positions, std::vector<std::string> &titles)
+bool Player::GetChapters(std::vector<int> &positions)
 {
 	positions.clear();
-	titles.clear();
 	ScopedLock m_lock(chapterMutex);
 	for (std::vector<Chapter>::iterator it = chapters.begin(); it != chapters.end(); ++it) {
-		positions.push_back(it->start/1000);
-		titles.push_back(it->title);
+		positions.push_back(it->start / 10);
 	}
 	return true;
 }
@@ -373,6 +371,9 @@ void Player::SetChapters(std::vector<Chapter> &Chapters)
 {
 	ScopedLock m_lock(chapterMutex);
 	chapters = Chapters;
+
+	if (!chapters.empty())
+		output.sendLibeplayerMessage(5);
 }
 
 void Player::RequestAbort()

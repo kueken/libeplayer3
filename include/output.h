@@ -85,6 +85,7 @@ class Output
 		bool SwitchVideo(Track *track);
 		bool Write(AVStream *stream, AVPacket *packet, int64_t Pts);
 		bool WriteSubtitle(AVStream *stream, AVPacket *packet, int64_t pts);
+		void sendLibeplayerMessage(int msg);
 
 		struct DVBApiVideoInfo
 		{
