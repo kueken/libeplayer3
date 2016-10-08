@@ -172,12 +172,15 @@ bool Input::Play()
 			seek_target = INT64_MIN;
 			restart_audio_resampling = true;
 
-			// clear streams
-			for (unsigned int i = 0; i < avfc->nb_streams; i++)
-				if (avfc->streams[i]->codec && avfc->streams[i]->codec->codec)
-					avcodec_flush_buffers(avfc->streams[i]->codec);
-			player->output.ClearAudio();
-			player->output.ClearVideo();
+			// flush decoders
+			if (videoTrack && videoTrack->avctx && videoTrack->avctx->codec)
+				avcodec_flush_buffers(videoTrack->avctx);
+			if (audioTrack && audioTrack->avctx && audioTrack->avctx->codec)
+				avcodec_flush_buffers(audioTrack->avctx);
+			if (subtitleTrack && subtitleTrack->avctx && subtitleTrack->avctx->codec)
+				avcodec_flush_buffers(subtitleTrack->avctx);
+
+			player->output.Clear();
 		}
 
 		AVPacket packet;
@@ -389,9 +392,22 @@ bool Input::UpdateTracks()
 
 	for (unsigned int n = 0; n < avfc->nb_streams; n++) {
 		AVStream *stream = avfc->streams[n];
+		AVCodecContext *avctx = avcodec_alloc_context3(NULL);
+
+		if (!avctx) {
+			fprintf(stderr, "context3 alloc for stream %d failed\n", n);
+			continue;
+		}
+		if (avcodec_parameters_to_context(avctx, stream->codecpar) < 0) {
+			fprintf(stderr, "parameters to context for stream %d failed\n", n);
+			avcodec_free_context(&avctx);
+			continue;
+		}
+		av_codec_set_pkt_timebase(avctx, stream->time_base);
 
 		Track track;
 		track.stream = stream;
+		track.avctx = avctx;
 		track.pid = n + 1;
 		track.type = 0;
 		AVDictionaryEntry *lang = av_dict_get(stream->metadata, "language", NULL, 0);
@@ -402,14 +418,14 @@ bool Input::UpdateTracks()
 		else
 			track.duration = avfc->duration;
 
-		switch (stream->codec->codec_type) {
+		switch (stream->codecpar->codec_type) {
 			case AVMEDIA_TYPE_VIDEO:
 				player->manager.addVideoTrack(track);
 				if (!videoTrack)
 					videoTrack = player->manager.getVideoTrack(track.pid);
 				break;
 			case AVMEDIA_TYPE_AUDIO:
-				switch(stream->codec->codec_id) {
+				switch(stream->codecpar->codec_id) {
 					case AV_CODEC_ID_MP2:
 						track.type = 1;
 						break;
@@ -423,10 +439,10 @@ bool Input::UpdateTracks()
 						track.type = 4;
 						break;
 					case AV_CODEC_ID_AAC: {
-						unsigned int extradata_size = stream->codec->extradata_size;
+						unsigned int extradata_size = stream->codecpar->extradata_size;
 						unsigned int object_type = 2;
 						if(extradata_size >= 2)
-							object_type = stream->codec->extradata[0] >> 3;
+							object_type = stream->codecpar->extradata[0] >> 3;
 						if (extradata_size <= 1 || object_type == 1 || object_type == 5) {
 							fprintf(stderr, "use resampling for AAC\n");
 							track.type = 6;
@@ -453,7 +469,7 @@ bool Input::UpdateTracks()
 					audioTrack = player->manager.getAudioTrack(track.pid);
 				break;
 			case AVMEDIA_TYPE_SUBTITLE:
-				switch(stream->codec->codec_id) {
+				switch(stream->codecpar->codec_id) {
 					case AV_CODEC_ID_SRT:
 					case AV_CODEC_ID_SUBRIP:
 					case AV_CODEC_ID_TEXT:
@@ -471,7 +487,7 @@ bool Input::UpdateTracks()
 				player->manager.addSubtitleTrack(track);
 				break;
 			default:
-				fprintf(stderr, "not handled or unknown codec_type %d\n", stream->codec->codec_type);
+				fprintf(stderr, "not handled or unknown codec_type %d\n", stream->codecpar->codec_type);
 				break;
 		}
 	}
@@ -507,8 +523,7 @@ bool Input::Stop()
 
 	if (avfc) {
 		ScopedLock lock(mutex);
-		for (unsigned int i = 0; i < avfc->nb_streams; i++)
-			avcodec_close(avfc->streams[i]->codec);
+		player->manager.clearTracks();
 		avformat_close_input(&avfc);
 	}
 
@@ -562,20 +577,29 @@ bool Input::GetDuration(int64_t &duration)
 
 bool Input::SwitchAudio(Track *track)
 {
+	if (audioTrack && audioTrack->avctx && audioTrack->avctx->codec)
+		avcodec_flush_buffers(audioTrack->avctx);
+
 	audioTrack = track;
 	player->output.SwitchAudio(track ? track : NULL);
-	// player->Seek(-5000, false);
+
 	return true;
 }
 
 bool Input::SwitchSubtitle(Track *track)
 {
+	if (subtitleTrack && subtitleTrack->avctx && subtitleTrack->avctx->codec)
+		avcodec_flush_buffers(subtitleTrack->avctx);
+
 	subtitleTrack = track;
 	return true;
 }
 
 bool Input::SwitchVideo(Track *track)
 {
+	if (videoTrack && videoTrack->avctx && videoTrack->avctx->codec)
+		avcodec_flush_buffers(videoTrack->avctx);
+
 	videoTrack = track;
 	player->output.SwitchVideo(track ? track : NULL);
 	return true;

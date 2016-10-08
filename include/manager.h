@@ -43,12 +43,13 @@ struct Track
 	std::string title;
 	int pid;
 	AVStream *stream;
+	AVCodecContext *avctx;
 	bool inactive;
 	bool hidden; // not part of currently selected program
 	bool is_static;
 	int type;
 	int64_t duration;
-	Track() : pid(-1), stream(NULL), inactive(false), hidden(false), is_static(false), type(0), duration(0) {}
+	Track() : pid(-1), stream(NULL), avctx(NULL), inactive(false), hidden(false), is_static(false), type(0), duration(0) {}
 };
 
 struct Program

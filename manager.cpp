@@ -204,16 +204,25 @@ void Manager::clearTracks()
 {
 	ScopedLock m_lock(mutex);
 
-	for (std::map<int,Track*>::iterator it = audioTracks.begin(); it != audioTracks.end(); ++it)
+	for (std::map<int,Track*>::iterator it = audioTracks.begin(); it != audioTracks.end(); ++it) {
+		if (it->second->avctx != NULL)
+			avcodec_free_context(&it->second->avctx);
 		delete it->second;
+	}
 	audioTracks.clear();
 
-	for (std::map<int, Track*>::iterator it = videoTracks.begin(); it != videoTracks.end(); ++it)
+	for (std::map<int, Track*>::iterator it = videoTracks.begin(); it != videoTracks.end(); ++it) {
+		if (it->second->avctx != NULL)
+			avcodec_free_context(&it->second->avctx);
 		delete it->second;
+	}
 	videoTracks.clear();
 
-	for (std::map<int,Track*>::iterator it = subtitleTracks.begin(); it != subtitleTracks.end(); ++it)
+	for (std::map<int,Track*>::iterator it = subtitleTracks.begin(); it != subtitleTracks.end(); ++it) {
+		if (it->second->avctx != NULL)
+			avcodec_free_context(&it->second->avctx);
 		delete it->second;
+	}
 	subtitleTracks.clear();
 
 	Programs.clear();

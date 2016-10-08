@@ -35,6 +35,8 @@ extern "C" {
 
 #include <linux/dvb/stm_ioctls.h>
 
+#include "manager.h"
+
 #define AV_CODEC_ID_INJECTPCM AV_CODEC_ID_PCM_S16LE
 
 class Player;
@@ -51,7 +53,7 @@ class Writer
 		static audio_encoding_t GetAudioEncoding(enum AVCodecID id);
 		static Writer *GetWriter(enum AVCodecID id, enum AVMediaType codec_type, int track_type);
 
-		virtual void Init(int _fd, AVStream * /*stream*/, Player *_player ) { fd = _fd; player = _player; }
+		virtual void Init(int _fd, Track */*track*/, Player *_player ) { fd = _fd; player = _player; }
 		virtual bool Write(AVPacket *packet, int64_t pts);
 };
 #endif

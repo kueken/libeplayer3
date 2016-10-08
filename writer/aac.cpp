@@ -95,28 +95,28 @@ class WriterAAC : public Writer
 		AVStream *stream;
 	public:
 		bool Write(AVPacket *packet, int64_t pts);
-		void Init(int _fd, AVStream *_stream, Player *_player);
+		void Init(int _fd, Track *_track, Player *_player);
 		WriterAAC();
 };
 
-void WriterAAC::Init(int _fd, AVStream *_stream, Player *_player)
+void WriterAAC::Init(int _fd, Track *_track, Player *_player)
 {
 	fd = _fd;
-	stream = _stream;
+	stream = _track->stream;
 	player = _player;
 #if AAC_DEBUG
 	printf("Create AAC ExtraData\n");
-	printf("stream->codec->extradata_size %d\n", stream->codec->extradata_size);
-	Hexdump(stream->codec->extradata, stream->codec->extradata_size);
+	printf("stream->codecpar->extradata_size %d\n", stream->codecpar->extradata_size);
+	Hexdump(stream->codecpar->extradata, stream->codecpar->extradata_size);
 #endif
 	unsigned int object_type = 2;	// LC
-	unsigned int sample_index = aac_get_sample_rate_index(stream->codec->sample_rate);
-	unsigned int chan_config = stream->codec->channels;
-	if (stream->codec->extradata_size >= 2)
+	unsigned int sample_index = aac_get_sample_rate_index(stream->codecpar->sample_rate);
+	unsigned int chan_config = stream->codecpar->channels;
+	if (stream->codecpar->extradata_size >= 2)
 	{
-		object_type = stream->codec->extradata[0] >> 3;
-		sample_index = ((stream->codec->extradata[0] & 0x7) << 1) + (stream->codec->extradata[1] >> 7);
-		chan_config = (stream->codec->extradata[1] >> 3) && 0xf;
+		object_type = stream->codecpar->extradata[0] >> 3;
+		sample_index = ((stream->codecpar->extradata[0] & 0x7) << 1) + (stream->codecpar->extradata[1] >> 7);
+		chan_config = (stream->codecpar->extradata[1] >> 3) && 0xf;
 	}
 #if AAC_DEBUG
 	printf("aac object_type %d\n", object_type);

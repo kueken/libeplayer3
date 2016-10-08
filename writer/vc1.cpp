@@ -51,14 +51,14 @@ class WriterVC1 : public Writer
 		AVStream *stream;
 	public:
 		bool Write(AVPacket *packet, int64_t pts);
-		void Init(int _fd, AVStream *_stream, Player *_player);
+		void Init(int _fd, Track *_track, Player *_player);
 		WriterVC1();
 };
 
-void WriterVC1::Init(int _fd, AVStream *_stream, Player *_player)
+void WriterVC1::Init(int _fd, Track *_track, Player *_player)
 {
 	fd = _fd;
-	stream = _stream;
+	stream = _track->stream;
 	player = _player;
 	initialHeader = true;
 }
@@ -107,14 +107,14 @@ bool WriterVC1::Write(AVPacket *packet, int64_t pts)
 		PesPtr += WMV3_PRIVATE_DATA_LENGTH;
 
 		/* Metadata Header Struct A */
-		*PesPtr++ = (stream->codec->height >> 0) & 0xff;
-		*PesPtr++ = (stream->codec->height >> 8) & 0xff;
-		*PesPtr++ = (stream->codec->height >> 16) & 0xff;
-		*PesPtr++ = stream->codec->height >> 24;
-		*PesPtr++ = (stream->codec->width >> 0) & 0xff;
-		*PesPtr++ = (stream->codec->width >> 8) & 0xff;
-		*PesPtr++ = (stream->codec->width >> 16) & 0xff;
-		*PesPtr++ = stream->codec->width >> 24;
+		*PesPtr++ = (stream->codecpar->height >> 0) & 0xff;
+		*PesPtr++ = (stream->codecpar->height >> 8) & 0xff;
+		*PesPtr++ = (stream->codecpar->height >> 16) & 0xff;
+		*PesPtr++ = stream->codecpar->height >> 24;
+		*PesPtr++ = (stream->codecpar->width >> 0) & 0xff;
+		*PesPtr++ = (stream->codecpar->width >> 8) & 0xff;
+		*PesPtr++ = (stream->codecpar->width >> 16) & 0xff;
+		*PesPtr++ = stream->codecpar->width >> 24;
 
 		PesPtr += 12;		/* Skip flag word and Struct B first 8 bytes */
 
@@ -132,8 +132,8 @@ bool WriterVC1::Write(AVPacket *packet, int64_t pts)
 
 		/* For VC1 the codec private data is a standard vc1 sequence header so we just copy it to the output */
 		iov[0].iov_base = PesHeader;
-		iov[1].iov_base = stream->codec->extradata;
-		iov[1].iov_len = stream->codec->extradata_size;
+		iov[1].iov_base = stream->codecpar->extradata;
+		iov[1].iov_len = stream->codecpar->extradata_size;
 		iov[0].iov_len = InsertPesHeader(PesHeader, iov[1].iov_len, VC1_VIDEO_PES_START_CODE, INVALID_PTS_VALUE, 0);
 		if (writev(fd, iov, 2) < 0)
 			return false;
