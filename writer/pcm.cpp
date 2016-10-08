@@ -251,9 +251,9 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 			decoded_frame = NULL;
 		}
 
-		AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
+		AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
 		if (!codec) {
-			fprintf(stderr, "%s %d: avcodec_find_decoder(%llx)\n", __func__, __LINE__, (unsigned long long) avctx->codec_id);
+			fprintf(stderr, "%s %d: avcodec_find_decoder(%llx)\n", __func__, __LINE__, (unsigned long long) stream->codecpar->codec_id);
 			return false;
 		}
 		avcodec_close(avctx);
@@ -311,8 +311,8 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 		}
 	}
 
-	unsigned int packet_size = packet->size;
-	while (packet_size > 0 || (!packet_size && !packet->data)) {
+	AVPacket pkt = *packet;
+	while (pkt.size > 0 || (!pkt.size && !pkt.data)) {
 		int got_frame = 0;
 
 		if (!decoded_frame) {
@@ -323,19 +323,21 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 		} else
 			av_frame_unref(decoded_frame);
 
-		int len = avcodec_decode_audio4(avctx, decoded_frame, &got_frame, packet);
-		if (len < 0) {
+		int ret = avcodec_send_packet(avctx, &pkt);
+		if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
 			restart_audio_resampling = true;
 			break;
 		}
-
-		if (packet->data)
-			packet_size -= len;
-
-		if (!got_frame) {
-			if (!packet->data || !packet_size)
+		if (ret >= 0)
+			pkt.size = 0;
+		ret = avcodec_receive_frame(avctx, decoded_frame);
+		if (ret < 0) {
+			if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
+				restart_audio_resampling = true;
 				break;
-			continue;
+			}
+			else
+				continue;
 		}
 
 		pts = player->input.calcPts(stream, av_frame_get_best_effort_timestamp(decoded_frame));
@@ -360,7 +362,7 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 			break;
 		}
 	}
-	return !packet_size;
+	return !pkt.size;
 }
 
 WriterPCM::WriterPCM()
