@@ -456,14 +456,6 @@ bool Input::UpdateTracks()
 				switch(stream->codec->codec_id) {
 					case AV_CODEC_ID_SRT:
 					case AV_CODEC_ID_SUBRIP:
-						 track.type = 4;
-						 break;
-					case AV_CODEC_ID_ASS:
-						 track.type = 3;
-						 break;
-					case AV_CODEC_ID_SSA:
-						 track.type = 2;
-						 break;
 					case AV_CODEC_ID_TEXT:
 					case AV_CODEC_ID_DVD_SUBTITLE:
 					case AV_CODEC_ID_DVB_SUBTITLE:
