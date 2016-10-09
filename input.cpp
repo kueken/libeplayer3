@@ -192,7 +192,8 @@ bool Input::Play()
 			continue;
 		}
 		if (averror(err, av_read_frame)) // EOF?
-			break;		// while
+			break; // while
+
 
 		player->readCount += packet.size;
 
@@ -223,6 +224,8 @@ bool Input::Play()
 		}
 		av_packet_unref(&packet);
 	} /* while */
+
+	player->output.sendLibeplayerMessage(1); /* Tell enigma2 that we stop */
 
 	if (player->abortRequested)
 		player->output.Clear();

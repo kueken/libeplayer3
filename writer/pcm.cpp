@@ -332,7 +332,7 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 			pkt.size = 0;
 		ret = avcodec_receive_frame(avctx, decoded_frame);
 		if (ret < 0) {
-			if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
+			if ((ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) || !pkt.data) {
 				restart_audio_resampling = true;
 				break;
 			}
