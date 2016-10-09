@@ -53,7 +53,7 @@ class Writer
 		static audio_encoding_t GetAudioEncoding(enum AVCodecID id);
 		static Writer *GetWriter(enum AVCodecID id, enum AVMediaType codec_type, int track_type);
 
-		virtual void Init(int _fd, Track */*track*/, Player *_player ) { fd = _fd; player = _player; }
+		virtual void Init(int _fd, Track * /*track*/, Player *_player ) { fd = _fd; player = _player; }
 		virtual bool Write(AVPacket *packet, int64_t pts);
 };
 #endif
