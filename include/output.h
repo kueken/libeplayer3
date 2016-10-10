@@ -47,6 +47,17 @@ struct subtitleData
 		:start_ms(0), duration_ms(0), end_ms(0){}
 };
 
+struct DVBApiVideoInfo
+{
+	int width;
+	int height;
+	int frame_rate;
+	int progressive;
+	int aspect;
+	DVBApiVideoInfo()
+		:width(-1), height(-1), frame_rate(-1), progressive(-1), aspect(-1){}
+};
+
 class Player;
 
 class Output
@@ -57,6 +68,7 @@ class Output
 		int videofd;
 		int audiofd;
 		std::map<uint32_t, subtitleData> embedded_subtitle;
+		DVBApiVideoInfo videoInfo;
 		Writer *videoWriter, *audioWriter;
 		Mutex audioMutex, videoMutex, subtitleMutex;
 		Track *audioTrack, *videoTrack;
@@ -87,20 +99,8 @@ class Output
 		bool Write(AVStream *stream, AVPacket *packet, int64_t Pts);
 		bool WriteSubtitle(AVStream *stream, AVPacket *packet, int64_t pts);
 		void sendLibeplayerMessage(int msg);
-
-		struct DVBApiVideoInfo
-		{
-			int width;
-			int height;
-			int frame_rate;
-			int progressive;
-			int aspect;
-			DVBApiVideoInfo()
-				:width(-1), height(-1), frame_rate(-1), progressive(-1), aspect(-1){}
-		};
-
-		DVBApiVideoInfo videoInfo;
 		bool GetSubtitles(std::map<uint32_t, subtitleData> &subtitles);
+		void GetVideoInfo(DVBApiVideoInfo &video_info);
 };
 
 #endif

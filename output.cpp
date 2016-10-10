@@ -404,6 +404,11 @@ bool Output::GetSubtitles(std::map<uint32_t, subtitleData> &subtitles)
 	return true;
 }
 
+void Output::GetVideoInfo(DVBApiVideoInfo &video_info)
+{
+	video_info = videoInfo;
+}
+
 const char *Output::ass_get_text(char *str)
 {
 	/*

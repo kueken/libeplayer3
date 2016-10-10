@@ -433,3 +433,8 @@ bool Player::GetSubtitles(std::map<uint32_t, subtitleData> &subtitles)
 {
 	return output.GetSubtitles(subtitles);
 }
+
+void Player::GetVideoInfo(DVBApiVideoInfo &video_info)
+{
+	output.GetVideoInfo(video_info);
+}

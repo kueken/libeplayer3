@@ -115,6 +115,7 @@ class Player {
 		bool SelectProgram(int key);
 		bool SelectProgram(std::string &key);
 		bool GetSubtitles(std::map<uint32_t, subtitleData> &subtitles);
+		void GetVideoInfo(DVBApiVideoInfo &video_info);
 
 		Player();
 };
