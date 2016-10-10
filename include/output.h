@@ -56,6 +56,7 @@ class Output
 	private:
 		int videofd;
 		int audiofd;
+		std::map<uint32_t, subtitleData> embedded_subtitle;
 		Writer *videoWriter, *audioWriter;
 		Mutex audioMutex, videoMutex, subtitleMutex;
 		Track *audioTrack, *videoTrack;
@@ -99,8 +100,7 @@ class Output
 		};
 
 		DVBApiVideoInfo videoInfo;
-		typedef std::map<uint32_t, subtitleData> subtitleMap;
-		subtitleMap embedded_subtitle;
+		bool GetSubtitles(std::map<uint32_t, subtitleData> &subtitles);
 };
 
 #endif

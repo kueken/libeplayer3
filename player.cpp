@@ -428,3 +428,8 @@ bool Player::SelectProgram(std::string &key)
 {
 	return manager.selectProgram(atoi(key.c_str()));
 }
+
+bool Player::GetSubtitles(std::map<uint32_t, subtitleData> &subtitles)
+{
+	return output.GetSubtitles(subtitles);
+}

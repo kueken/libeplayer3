@@ -394,6 +394,16 @@ void Output::sendLibeplayerMessage(int msg)
 	libeplayerMessage(msg);
 }
 
+bool Output::GetSubtitles(std::map<uint32_t, subtitleData> &subtitles)
+{
+	ScopedLock s_lock(subtitleMutex);
+	if (embedded_subtitle.empty())
+		return false;
+	subtitles = embedded_subtitle;
+	embedded_subtitle.clear();
+	return true;
+}
+
 const char *Output::ass_get_text(char *str)
 {
 	/*
