@@ -97,12 +97,18 @@ bool Player::Close()
 	isSlowMotion = false;
 	Speed = 0;
 	url.clear();
+	output.Close();
 
 	return true;
 }
 
 bool Player::Play()
 {
+	if (!output.Open()) {
+		fprintf(stderr, "error when open output\n");
+		return false;
+	}
+
 	bool ret = true;
 
 	if (!isPlaying) {
@@ -427,6 +433,16 @@ bool Player::SelectProgram(int key)
 bool Player::SelectProgram(std::string &key)
 {
 	return manager.selectProgram(atoi(key.c_str()));
+}
+
+std::vector<Track> Player::getAudioTracks()
+{
+	return manager.getAudioTracks();
+}
+
+std::vector<Track> Player::getSubtitleTracks()
+{
+	return manager.getSubtitleTracks();
 }
 
 bool Player::GetSubtitles(std::map<uint32_t, subtitleData> &subtitles)

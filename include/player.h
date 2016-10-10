@@ -114,6 +114,8 @@ class Player {
 		bool GetPrograms(std::vector<std::string> &keys, std::vector<std::string> &values);
 		bool SelectProgram(int key);
 		bool SelectProgram(std::string &key);
+		std::vector<Track> getAudioTracks();
+		std::vector<Track> getSubtitleTracks();
 		bool GetSubtitles(std::map<uint32_t, subtitleData> &subtitles);
 		void GetVideoInfo(DVBApiVideoInfo &video_info);
 
