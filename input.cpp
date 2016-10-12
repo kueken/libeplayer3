@@ -608,33 +608,27 @@ bool Input::SwitchVideo(Track *track)
 	return true;
 }
 
-bool Input::GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values)
+bool Input::GetMetadata(std::map<std::string, std::string> &metadata)
 {
-	keys.clear();
-	values.clear();
-
 	if (avfc) {
 		AVDictionaryEntry *tag = NULL;
 
 		if (avfc->metadata)
-			while ((tag = av_dict_get(avfc->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-				keys.push_back(tag->key);
-				values.push_back(tag->value);
-			}
+			while ((tag = av_dict_get(avfc->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+				metadata.insert(std::pair<std::string, std::string>(tag->key, tag->value));
 
 		if (videoTrack)
-			while ((tag = av_dict_get(videoTrack->stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-				keys.push_back(tag->key);
-				values.push_back(tag->value);
-			}
+			while ((tag = av_dict_get(videoTrack->stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+				metadata.insert(std::pair<std::string, std::string>(tag->key, tag->value));
 
 		if (audioTrack)
-			while ((tag = av_dict_get(audioTrack->stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-				keys.push_back(tag->key);
-				values.push_back(tag->value);
-			}
+			while ((tag = av_dict_get(audioTrack->stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+				metadata.insert(std::pair<std::string, std::string>(tag->key, tag->value));
+
+		if (!metadata.empty())
+			return true;
 	}
-	return true;
+	return false;
 }
 
 bool Input::GetReadCount(uint64_t &readcount)

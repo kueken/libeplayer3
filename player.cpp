@@ -358,9 +358,9 @@ bool Player::SwitchSubtitle(int pid)
 	return input.SwitchSubtitle(track);
 }
 
-bool Player::GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values)
+bool Player::GetMetadata(std::map<std::string, std::string> &metadata)
 {
-	return input.GetMetadata(keys, values);
+	return input.GetMetadata(metadata);
 }
 
 bool Player::GetChapters(std::vector<int> &positions)

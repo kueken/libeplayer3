@@ -93,7 +93,7 @@ class Player {
 		bool GetFrameCount(int64_t &framecount);
 		bool GetDuration(int64_t &duration);
 
-		bool GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values);
+		bool GetMetadata(std::map<std::string, std::string> &metadata);
 		bool SlowMotion(int repeats);
 		int FastBackward(int speed);
 		int FastForward(int speed);

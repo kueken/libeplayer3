@@ -76,7 +76,7 @@ class Input
 		bool SwitchAudio(Track *track);
 		bool SwitchSubtitle(Track *track);
 		bool SwitchVideo(Track *track);
-		bool GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values);
+		bool GetMetadata(std::map<std::string, std::string> &metadata);
 		bool GetReadCount(uint64_t &readcount);
 		AVFormatContext *GetAVFormatContext();
 		void ReleaseAVFormatContext();
