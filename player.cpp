@@ -226,7 +226,6 @@ bool Player::Stop()
 
 	while (hasThreadStarted && (--wait_time) > 0)
 		usleep(100000);
-	}
 	if (wait_time == 0)
 	{
 		fprintf(stderr,"[player.cpp] timeout waiting for thread stop\n");
