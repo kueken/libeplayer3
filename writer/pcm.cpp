@@ -323,7 +323,7 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 
 		if (!decoded_frame) {
 			if (!(decoded_frame = av_frame_alloc())) {
-				fprintf(stderr, "out of memory\n");
+				fprintf(stderr, "[libeplayer3] out of memory\n");
 				exit(1);
 			}
 		} else
@@ -355,7 +355,7 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 				av_freep(&output);
 			int e = av_samples_alloc(&output, NULL, out_channels, out_samples, AV_SAMPLE_FMT_S16, 1);
 			if (e < 0) {
-				fprintf(stderr, "av_samples_alloc: %d\n", -e);
+				fprintf(stderr, "[libeplayer3] av_samples_alloc: %d\n", -e);
 				break;
 			}
 			out_samples_max = out_samples;
