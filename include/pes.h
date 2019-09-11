@@ -14,7 +14,8 @@
 #define PES_START_CODE_RESERVED_4		0xfd
 #define PES_VERSION_FAKE_START_CODE		0x31
 
-#define MAX_PES_PACKET_SIZE                     (65535)
+
+#define MAX_PES_PACKET_SIZE			65535
 
 
 /* start codes */
@@ -27,8 +28,7 @@
 #define VC1_VIDEO_PES_START_CODE		0xfd
 #define AAC_AUDIO_PES_START_CODE		0xcf
 
-int32_t InsertPesHeader(uint8_t *data, int32_t size, uint8_t stream_id, uint64_t pts, int32_t pic_start_code);
-int32_t InsertVideoPrivateDataHeader(uint8_t *data, int32_t payload_size);
-void UpdatePesHeaderPayloadSize(uint8_t *data, int32_t size);
+int InsertPesHeader(uint8_t *data, int size, uint8_t stream_id, int64_t pts, int pic_start_code);
+int InsertVideoPrivateDataHeader(uint8_t *data, int payload_size);
 
 #endif
