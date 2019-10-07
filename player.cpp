@@ -65,11 +65,12 @@ void *Player::playthread(void *arg)
 	pthread_exit(NULL);
 }
 
-bool Player::Open(const char *Url, bool _isHttp, std::string headers)
+bool Player::Open(const char *Url, bool _noprobe, std::string headers)
 {
 	fprintf(stderr, "URL=%s\n", Url);
 
-	isHttp = _isHttp;
+	isHttp = false;
+	noprobe = _noprobe;
 	abortRequested = false;
 
 	manager.clearTracks();
@@ -77,13 +78,16 @@ bool Player::Open(const char *Url, bool _isHttp, std::string headers)
 	if (!strncmp("mms://", Url, 6)) {
 		url = "mmst";
 		url += Url + 3;
-	}
-	else if (!strncmp("myts://", Url, 7)) {
-		url = "file";
-		url += Url + 4;
-	}
-	else
+		isHttp = true;
+	} else if (strstr(Url, "://")) {
 		url = Url;
+		isHttp = strncmp("file://", Url, 7);
+	} else if (!strncmp(Url, "bluray:/", 8)) {
+		url = Url;
+	} else {
+		fprintf(stderr, "%s %s %d: Unknown stream (%s)\n", FILENAME, __func__, __LINE__, Url);
+		return false;
+	}
 
 	return input.Init(url.c_str(), headers);
 }
@@ -97,18 +101,12 @@ bool Player::Close()
 	isSlowMotion = false;
 	Speed = 0;
 	url.clear();
-	output.Close();
 
 	return true;
 }
 
 bool Player::Play()
 {
-	if (!output.Open()) {
-		fprintf(stderr, "error when open output\n");
-		return false;
-	}
-
 	bool ret = true;
 
 	if (!isPlaying) {
@@ -139,17 +137,18 @@ bool Player::Play()
 				}
 			}
 		}
-	}
-	else
-	{
-		fprintf(stderr,"[player.cpp] playback already running\n");
+
+	} else {
+		fprintf(stderr,"playback already running\n");
 		ret = false;
 	}
 	return ret;
 }
 
-int Player::Pause()
+bool Player::Pause()
 {
+	bool ret = true;
+
 	if (isPlaying && !isPaused) {
 
 		if (isSlowMotion)
@@ -168,13 +167,15 @@ int Player::Pause()
 		Speed = 1;
 	} else {
 		fprintf(stderr,"playback not playing or already in pause mode\n");
-		return -1;
+		ret = false;
 	}
-	return 0;
+	return ret;
 }
 
-int Player::Continue()
+bool Player::Continue()
 {
+	int ret = true;
+
 	if (isPlaying && (isPaused || isForwarding || isBackWard || isSlowMotion)) {
 
 		if (isSlowMotion)
@@ -193,16 +194,15 @@ int Player::Continue()
 		Speed = 1;
 	} else {
 		fprintf(stderr,"continue not possible\n");
-		return -1;
+		ret = false;
 	}
 
-	return 0;
+	return ret;
 }
 
 bool Player::Stop()
 {
 	bool ret = true;
-	int wait_time = 20;
 
 	if (isPlaying) {
 		isPaused = false;
@@ -217,59 +217,51 @@ bool Player::Stop()
 
 		output.Stop();
 		input.Stop();
-	}
-	else
-	{
-		fprintf(stderr,"[player.cpp] stop not possible\n");
+
+	} else {
+		fprintf(stderr,"stop not possible\n");
 		ret = false;
 	}
 
-	while (hasThreadStarted && (--wait_time) > 0)
+	while (hasThreadStarted)
 		usleep(100000);
-	if (wait_time == 0)
-	{
-		fprintf(stderr,"[player.cpp] timeout waiting for thread stop\n");
+
+	return ret;
+}
+
+bool Player::FastForward(int speed)
+{
+	int ret = true;
+
+	/* Audio only forwarding not supported */
+	if (input.videoTrack && !isHttp && !isBackWard && (!isPaused ||  isPlaying)) {
+
+		if ((speed <= 0) || (speed > cMaxSpeed_ff)) {
+			fprintf(stderr, "speed %d out of range (1 - %d) \n", speed, cMaxSpeed_ff);
+			return false;
+		}
+
+		isForwarding = 1;
+		Speed = speed;
+		output.FastForward(speed);
+	} else {
+		fprintf(stderr,"fast forward not possible\n");
 		ret = false;
 	}
 
 	return ret;
 }
 
-int Player::FastForward(int speed)
+bool Player::FastBackward(int speed)
 {
-	/* Audio only forwarding not supported */
-	if (input.videoTrack && !isHttp && !isBackWard && (!isPaused ||  isPlaying))
-	{
-		if ((speed <= 0) || (speed > cMaxSpeed_ff))
-		{
-			fprintf(stderr, "[player.cpp] speed %d out of range (1 - %d) \n", speed, cMaxSpeed_ff);
-			return -1;
-		}
-
-		isForwarding = 1;
-		Speed = speed;
-		output.FastForward(speed);
-	}
-	else
-	{
-		fprintf(stderr,"[player.cpp] fast forward not possible\n");
-		return -1;
-	}
-
-	return 0;
-}
-
-int Player::FastBackward(int speed)
-{
-	int ret = 0;
+	bool ret = true;
 
 	/* Audio only reverse play not supported */
-	if (input.videoTrack && !isForwarding && (!isPaused || isPlaying))
-	{
-		if ((speed > 0) || (speed < cMaxSpeed_fr))
-		{
-			fprintf(stderr, "[player.cpp] speed %d out of range (0 - %d) \n", speed, cMaxSpeed_fr);
-			return -1;
+	if (input.videoTrack && !isForwarding && (!isPaused || isPlaying)) {
+
+		if ((speed > 0) || (speed < cMaxSpeed_fr)) {
+			fprintf(stderr, "speed %d out of range (0 - %d) \n", speed, cMaxSpeed_fr);
+			return false;
 		}
 
 		if (speed == 0) {
@@ -286,14 +278,12 @@ int Player::FastBackward(int speed)
 			fprintf(stderr,"OUTPUT_REVERSE failed\n");
 			isBackWard = false;
 			Speed = 1;
-			ret = -1;
+			ret = false;
 		}
 #endif
-	}
-	else
-	{
-		fprintf(stderr,"[player.cpp] fast backward not possible\n");
-		ret = -1;
+	} else {
+		fprintf(stderr,"fast backward not possible\n");
+		ret = false;
 	}
 
 	if (isBackWard)
@@ -321,7 +311,7 @@ bool Player::SlowMotion(int repeats)
 		output.SlowMotion(repeats);
 		return true;
 	}
-	fprintf(stderr, "[player.cpp] slowmotion not possible\n");
+	fprintf(stderr, "slowmotion not possible\n");
 	return false;
 }
 
@@ -366,28 +356,34 @@ bool Player::SwitchSubtitle(int pid)
 	return input.SwitchSubtitle(track);
 }
 
-bool Player::GetMetadata(std::map<std::string, std::string> &metadata)
+bool Player::SwitchTeletext(int pid)
 {
-	return input.GetMetadata(metadata);
+	Track *track = manager.getTeletextTrack(pid);
+	return input.SwitchTeletext(track);
 }
 
-bool Player::GetChapters(std::vector<int> &positions)
+bool Player::GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values)
+{
+	return input.GetMetadata(keys, values);
+}
+
+bool Player::GetChapters(std::vector<int> &positions, std::vector<std::string> &titles)
 {
 	positions.clear();
-	ScopedLock m_lock(chapterMutex);
+	titles.clear();
+	input.UpdateTracks();
+	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(chapterMutex);
 	for (std::vector<Chapter>::iterator it = chapters.begin(); it != chapters.end(); ++it) {
-		positions.push_back(it->start / 10);
+		positions.push_back(it->start/1000);
+		titles.push_back(it->title);
 	}
 	return true;
 }
 
 void Player::SetChapters(std::vector<Chapter> &Chapters)
 {
-	ScopedLock m_lock(chapterMutex);
+	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(chapterMutex);
 	chapters = Chapters;
-
-	if (!chapters.empty())
-		output.sendLibeplayerMessage(5);
 }
 
 void Player::RequestAbort()
@@ -410,6 +406,12 @@ int Player::GetAudioPid()
 int Player::GetSubtitlePid()
 {
 	Track *track = input.subtitleTrack;
+	return track ? track->pid : 0;
+}
+
+int Player::GetTeletextPid()
+{
+	Track *track = input.teletextTrack;
 	return track ? track->pid : 0;
 }
 
@@ -441,24 +443,4 @@ bool Player::SelectProgram(int key)
 bool Player::SelectProgram(std::string &key)
 {
 	return manager.selectProgram(atoi(key.c_str()));
-}
-
-std::vector<Track> Player::getAudioTracks()
-{
-	return manager.getAudioTracks();
-}
-
-std::vector<Track> Player::getSubtitleTracks()
-{
-	return manager.getSubtitleTracks();
-}
-
-bool Player::GetSubtitles(std::map<uint32_t, subtitleData> &subtitles)
-{
-	return output.GetSubtitles(subtitles);
-}
-
-void Player::GetVideoInfo(DVBApiVideoInfo &video_info)
-{
-	output.GetVideoInfo(video_info);
 }

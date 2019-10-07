@@ -10,7 +10,6 @@ lib_LTLIBRARIES = libeplayer3.la
 libeplayer3_la_SOURCES = \
 	input.cpp output.cpp \
 	manager.cpp player.cpp \
-	libthread.cpp \
 	writer/writer.cpp \
 	writer/pes.cpp \
 	writer/misc.cpp
@@ -20,5 +19,5 @@ libeplayer3_la_SOURCES = \
 # writer/h264.cpp
 # writer/h263.cpp writer/vc1.cpp writer/pcm.cpp writer/aac.cpp
 
-libeplayer3_la_LIBADD = -lavformat -lavcodec -lavutil -lswresample -lpthread -lswscale
+libeplayer3_la_LIBADD = -lavformat -lavcodec -lavutil -lswresample -lpthread -lswscale -lm
 

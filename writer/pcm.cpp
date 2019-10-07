@@ -73,7 +73,6 @@ class WriterPCM : public Writer
 		int uBitsPerSample;
 
 		AVStream *stream;
-		AVCodecContext *avctx;
 		SwrContext *swr;
 		AVFrame *decoded_frame;
 		int out_sample_rate;
@@ -86,7 +85,7 @@ class WriterPCM : public Writer
 		bool Write(AVPacket *packet, int64_t pts);
 		bool prepareClipPlay();
 		bool writePCM(int64_t Pts, uint8_t *data, unsigned int size);
-		void Init(int _fd, Track *_track, Player *_player);
+		void Init(int _fd, AVStream *_stream, Player *_player);
 		WriterPCM();
 };
 
@@ -143,10 +142,8 @@ bool WriterPCM::prepareClipPlay()
 		case 16:
 			break;
 		default:
-		{
-			printf("[libeplayer3] inappropriate bits per sample (%d) - must be 16 or 24\n", uBitsPerSample);
+			printf("inappropriate bits per sample (%d) - must be 16 or 24\n", uBitsPerSample);
 			return false;
-		}
 	}
 
 	return true;
@@ -223,11 +220,10 @@ bool WriterPCM::writePCM(int64_t Pts, uint8_t *data, unsigned int size)
 	return res;
 }
 
-void WriterPCM::Init(int _fd, Track *_track, Player *_player)
+void WriterPCM::Init(int _fd, AVStream *_stream, Player *_player)
 {
 	fd = _fd;
-	avctx = _track->avctx;
-	stream = _track->stream;
+	stream = _stream;
 	player = _player;
 	initialHeader = true;
 	restart_audio_resampling = true;
@@ -239,6 +235,8 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 		restart_audio_resampling = true;
 		return true;
 	}
+
+	AVCodecContext *c = stream->codec;
 
 	if (restart_audio_resampling) {
 		restart_audio_resampling = false;
@@ -253,36 +251,34 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 			decoded_frame = NULL;
 		}
 
-		AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
-		if (!codec)
-		{
-			fprintf(stderr, "[libeplayer3] %s %d: avcodec_find_decoder(%llx)\n", __func__, __LINE__, (unsigned long long) stream->codecpar->codec_id);
+		AVCodec *codec = avcodec_find_decoder(c->codec_id);
+		if (!codec) {
+			fprintf(stderr, "%s %d: avcodec_find_decoder(%llx)\n", __func__, __LINE__, (unsigned long long) c->codec_id);
 			return false;
 		}
-		avcodec_close(avctx);
-		if (avcodec_open2(avctx, codec, NULL))
-		{
-			fprintf(stderr, "[libeplayer3] %s %d: avcodec_open2 failed\n", __func__, __LINE__);
+		avcodec_close(c);
+		if (avcodec_open2(c, codec, NULL)) {
+			fprintf(stderr, "%s %d: avcodec_open2 failed\n", __func__, __LINE__);
 			return false;
 		}
 	}
-	if (!swr)
-	{
-		int in_rate = avctx->sample_rate;
+
+	if (!swr) {
+		int in_rate = c->sample_rate;
 		// rates in descending order
 		int rates[] = {192000, 176400, 96000, 88200, 48000, 44100, 0};
 		int i = 0;
 		// find the next equal or smallest rate
 		while (rates[i] && in_rate < rates[i])
-			i++;
+		i++;
 		out_sample_rate = rates[i] ? rates[i] : 44100;
-		out_channels = avctx->channels;
-		if (avctx->channel_layout == 0) {
+		out_channels = c->channels;
+		if (c->channel_layout == 0) {
 			// FIXME -- need to guess, looks pretty much like a bug in the FFMPEG WMA decoder
-			avctx->channel_layout = AV_CH_LAYOUT_STEREO;
+			c->channel_layout = AV_CH_LAYOUT_STEREO;
 		}
 
-		out_channel_layout = avctx->channel_layout;
+		out_channel_layout = c->channel_layout;
 		// player2 won't play mono
 		if (out_channel_layout == AV_CH_LAYOUT_MONO) {
 			out_channel_layout = AV_CH_LAYOUT_STEREO;
@@ -294,68 +290,64 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 		uBitsPerSample = 16;
 
 		swr = swr_alloc();
-		if (!swr)
-		{
-			fprintf(stderr, "[libeplayer3] %s %d: swr_alloc failed\n", __func__, __LINE__);
+		if (!swr) {
+			fprintf(stderr, "%s %d: swr_alloc failed\n", __func__, __LINE__);
 			return false;
 		}
-		av_opt_set_int(swr, "in_channel_layout", avctx->channel_layout, 0);
+		av_opt_set_int(swr, "in_channel_layout", c->channel_layout, 0);
 		av_opt_set_int(swr, "out_channel_layout", out_channel_layout, 0);
-		av_opt_set_int(swr, "in_sample_rate", avctx->sample_rate, 0);
+		av_opt_set_int(swr, "in_sample_rate", c->sample_rate, 0);
 		av_opt_set_int(swr, "out_sample_rate", out_sample_rate, 0);
-		av_opt_set_sample_fmt(swr, "in_sample_fmt", avctx->sample_fmt, 0);
+		av_opt_set_sample_fmt(swr, "in_sample_fmt", c->sample_fmt, 0);
 		av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
 
 		int e = swr_init(swr);
-		if (e < 0)
-		{
-			fprintf(stderr, "[libeplayer3] swr_init: %d (icl=%d ocl=%d isr=%d osr=%d isf=%d osf=%d)\n",
-				-e, (int) avctx->channel_layout,
-				(int) out_channel_layout, avctx->sample_rate, out_sample_rate, avctx->sample_fmt, AV_SAMPLE_FMT_S16);
+		if (e < 0) {
+			fprintf(stderr, "swr_init: %d (icl=%d ocl=%d isr=%d osr=%d isf=%d osf=%d)\n",
+				-e, (int) c->channel_layout,
+				(int) out_channel_layout, c->sample_rate, out_sample_rate, c->sample_fmt, AV_SAMPLE_FMT_S16);
 			restart_audio_resampling = true;
 			return false;
 		}
 	}
 
-	AVPacket pkt = *packet;
-	while (pkt.size > 0 || (!pkt.size && !pkt.data)) {
+	unsigned int packet_size = packet->size;
+	while (packet_size > 0 || (!packet_size && !packet->data)) {
 		int got_frame = 0;
 
 		if (!decoded_frame) {
 			if (!(decoded_frame = av_frame_alloc())) {
-				fprintf(stderr, "[libeplayer3] out of memory\n");
+				fprintf(stderr, "out of memory\n");
 				exit(1);
 			}
 		} else
 			av_frame_unref(decoded_frame);
 
-		int ret = avcodec_send_packet(avctx, &pkt);
-		if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
+		int len = avcodec_decode_audio4(c, decoded_frame, &got_frame, packet);
+		if (len < 0) {
 			restart_audio_resampling = true;
 			break;
 		}
-		if (ret >= 0)
-			pkt.size = 0;
-		ret = avcodec_receive_frame(avctx, decoded_frame);
-		if (ret < 0) {
-			if ((ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) || !pkt.data) {
-				restart_audio_resampling = true;
+
+		if (packet->data)
+			packet_size -= len;
+
+		if (!got_frame) {
+			if (!packet->data || !packet_size)
 				break;
-			}
-			else
-				continue;
+			continue;
 		}
 
 		pts = player->input.calcPts(stream, av_frame_get_best_effort_timestamp(decoded_frame));
 
 		int in_samples = decoded_frame->nb_samples;
-		int out_samples = av_rescale_rnd(swr_get_delay(swr, avctx->sample_rate) + in_samples, out_sample_rate, avctx->sample_rate, AV_ROUND_UP);
+		int out_samples = av_rescale_rnd(swr_get_delay(swr, c->sample_rate) + in_samples, out_sample_rate, c->sample_rate, AV_ROUND_UP);
 		if (out_samples > out_samples_max) {
 			if (output)
 				av_freep(&output);
 			int e = av_samples_alloc(&output, NULL, out_channels, out_samples, AV_SAMPLE_FMT_S16, 1);
 			if (e < 0) {
-				fprintf(stderr, "[libeplayer3] av_samples_alloc: %d\n", -e);
+				fprintf(stderr, "av_samples_alloc: %d\n", -e);
 				break;
 			}
 			out_samples_max = out_samples;
@@ -368,7 +360,7 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 			break;
 		}
 	}
-	return !pkt.size;
+	return !packet_size;
 }
 
 WriterPCM::WriterPCM()

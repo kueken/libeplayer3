@@ -21,15 +21,19 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
+#include <OpenThreads/ScopedLock>
+#include <OpenThreads/Thread>
+#include <OpenThreads/Condition>
+
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/time.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
 #include <libavutil/opt.h>
-#include <libavcodec/avcodec.h>
 }
 
+#include <pthread.h>
 #include <stdint.h>
 
 #include <string>
@@ -39,7 +43,6 @@ extern "C" {
 #include "input.h"
 #include "output.h"
 #include "manager.h"
-#include "libthread.h"
 
 struct Chapter
 {
@@ -52,8 +55,7 @@ class Player {
 	friend class Input;
 	friend class Output;
 	friend class Manager;
-	friend class eServiceLibpl;
-	friend class eServiceEPlayer3;
+	friend class cPlayback;
 	friend class WriterPCM;
 	friend int interrupt_cb(void *arg);
 
@@ -61,7 +63,7 @@ class Player {
 		Input input;
 		Output output;
 		Manager manager;
-		Mutex chapterMutex;
+		OpenThreads::Mutex chapterMutex;
 		std::vector<Chapter> chapters;
 		pthread_t playThread;
 
@@ -79,36 +81,39 @@ class Player {
 		uint64_t readCount;
 
 		std::string url;
+		bool noprobe;	/* hack: only minimal probing in av_find_stream_info */
 
 		void SetChapters(std::vector<Chapter> &Chapters);
 		static void* playthread(void*);
 	public:
 		bool SwitchAudio(int pid);
 		bool SwitchVideo(int pid);
+		bool SwitchTeletext(int pid);
 		bool SwitchSubtitle(int pid);
 
 		int GetAudioPid();
 		int GetVideoPid();
 		int GetSubtitlePid();
+		int GetTeletextPid();
 
 		bool GetPts(int64_t &pts);
 		bool GetFrameCount(int64_t &framecount);
 		bool GetDuration(int64_t &duration);
 
-		bool GetMetadata(std::map<std::string, std::string> &metadata);
+		bool GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values);
 		bool SlowMotion(int repeats);
-		int FastBackward(int speed);
-		int FastForward(int speed);
+		bool FastBackward(int speed);
+		bool FastForward(int speed);
 
-		bool Open(const char *Url, bool _isHttp = false, std::string headers = "");
+		bool Open(const char *Url, bool noprobe = false, std::string headers = "");
 		bool Close();
 		bool Play();
-		int Pause();
-		int Continue();
+		bool Pause();
+		bool Continue();
 		bool Stop();
 		bool Seek(int64_t pos, bool absolute);
 		void RequestAbort();
-		bool GetChapters(std::vector<int> &positions);
+		bool GetChapters(std::vector<int> &positions, std::vector<std::string> &titles);
 
 		AVFormatContext *GetAVFormatContext() { return input.GetAVFormatContext(); }
 		void ReleaseAVFormatContext() { input.ReleaseAVFormatContext(); }
@@ -116,10 +121,6 @@ class Player {
 		bool GetPrograms(std::vector<std::string> &keys, std::vector<std::string> &values);
 		bool SelectProgram(int key);
 		bool SelectProgram(std::string &key);
-		std::vector<Track> getAudioTracks();
-		std::vector<Track> getSubtitleTracks();
-		bool GetSubtitles(std::map<uint32_t, subtitleData> &subtitles);
-		void GetVideoInfo(DVBApiVideoInfo &video_info);
 
 		Player();
 };

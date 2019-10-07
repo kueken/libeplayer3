@@ -26,6 +26,10 @@
 #include <vector>
 #include <map>
 
+#include <OpenThreads/ScopedLock>
+#include <OpenThreads/Thread>
+#include <OpenThreads/Condition>
+
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/time.h>
@@ -33,8 +37,6 @@ extern "C" {
 #include <libswresample/swresample.h>
 #include <libavutil/opt.h>
 }
-
-#include "libthread.h"
 
 class Player;
 class Track;
@@ -46,11 +48,12 @@ class Input
 	friend int interrupt_cb(void *arg);
 
 	private:
-		Mutex mutex;
+		OpenThreads::Mutex mutex;
 
 		Track *videoTrack;
 		Track *audioTrack;
 		Track *subtitleTrack;
+		Track *teletextTrack;
 
 		int hasPlayThreadStarted;
 		int64_t seek_avts_abs;
@@ -67,6 +70,8 @@ class Input
 		Input();
 		~Input();
 
+		bool ReadSubtitle(const char *filename, const char *format, int pid);
+		bool ReadSubtitles(const char *filename);
 		bool Init(const char *filename, std::string headers = "");
 		bool UpdateTracks();
 		bool Play();
@@ -75,8 +80,9 @@ class Input
 		bool GetDuration(int64_t &duration);
 		bool SwitchAudio(Track *track);
 		bool SwitchSubtitle(Track *track);
+		bool SwitchTeletext(Track *track);
 		bool SwitchVideo(Track *track);
-		bool GetMetadata(std::map<std::string, std::string> &metadata);
+		bool GetMetadata(std::vector<std::string> &keys, std::vector<std::string> &values);
 		bool GetReadCount(uint64_t &readcount);
 		AVFormatContext *GetAVFormatContext();
 		void ReleaseAVFormatContext();

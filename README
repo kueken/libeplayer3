@@ -1,9 +1,3 @@
-This is a revised libeplayer3 version for Enigma2 based on ffplay from ffmpeg and
-libeplayer3 from libstb-hal-cst-next.
---Taapat
-
-The original Duckbox-Developers libstb-hal-cst-next libeplayer3 README follows:
-
 This is a revised libeplayer3 version for Neutrino, rewritten in C++, with
 various code parts (e.g. subtitle processing, non-working decoders) removed.
 --martii

@@ -40,14 +40,14 @@ class WriterDIVX : public Writer
 		AVStream *stream;
 	public:
 		bool Write(AVPacket *packet, int64_t pts);
-		void Init(int fd, Track *_track, Player *player);
+		void Init(int fd, AVStream *_stream, Player *player);
 		WriterDIVX();
 };
 
-void WriterDIVX::Init(int _fd, Track *_track, Player *_player)
+void WriterDIVX::Init(int _fd, AVStream *_stream, Player *_player)
 {
 	fd = _fd;
-	stream = _track->stream;
+	stream = _stream;
 	player = _player;
 	initialHeader = true;
 }
@@ -89,8 +89,8 @@ bool WriterDIVX::Write(AVPacket *packet, int64_t pts)
 	iov[ic++].iov_len = FakeHeaderLength;
 
 	if (initialHeader) {
-		iov[ic].iov_base = stream->codecpar->extradata;
-		iov[ic++].iov_len = stream->codecpar->extradata_size;
+		iov[ic].iov_base = stream->codec->extradata;
+		iov[ic++].iov_len = stream->codec->extradata_size;
 		initialHeader = false;
 	}
 	iov[ic].iov_base = packet->data;
