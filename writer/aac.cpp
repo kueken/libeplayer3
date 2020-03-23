@@ -106,17 +106,17 @@ void WriterAAC::Init(int _fd, Track *_track, Player *_player)
 	player = _player;
 #if AAC_DEBUG
 	printf("Create AAC ExtraData\n");
-	printf("st->codecpar->extradata_size %d\n", st->codecpar->extradata_size);
-	Hexdump(st->codecpar->extradata, st->codecpar->extradata_size);
+	printf("stream->codecpar->extradata_size %d\n", stream->codecpar->extradata_size);
+	Hexdump(stream->codecpar->extradata, stream->codecpar->extradata_size);
 #endif
 	unsigned int object_type = 2;	// LC
-	unsigned int sample_index = aac_get_sample_rate_index(st->codecpar->sample_rate);
-	unsigned int chan_config = st->codecpar->channels;
-	if (st->codecpar->extradata_size >= 2)
+	unsigned int sample_index = aac_get_sample_rate_index(stream->codecpar->sample_rate);
+	unsigned int chan_config = stream->codecpar->channels;
+	if (stream->codecpar->extradata_size >= 2)
 	{
-		object_type = st->codecpar->extradata[0] >> 3;
-		sample_index = ((st->codecpar->extradata[0] & 0x7) << 1) + (st->codecpar->extradata[1] >> 7);
-		chan_config = (st->codecpar->extradata[1] >> 3) && 0xf;
+		object_type = stream->codecpar->extradata[0] >> 3;
+		sample_index = ((stream->codecpar->extradata[0] & 0x7) << 1) + (stream->codecpar->extradata[1] >> 7);
+		chan_config = (stream->codecpar->extradata[1] >> 3) && 0xf;
 	}
 #if AAC_DEBUG
 	printf("[libeplayer3] aac object_type %d\n", object_type);

@@ -407,7 +407,7 @@ bool Input::UpdateTracks()
 			fprintf(stderr, "context3 alloc for stream %d failed\n", n);
 			continue;
 		}
-		if (avcodec_parameters_to_context(avctx, st->codecpar) < 0) {
+		if (avcodec_parameters_to_context(avctx, stream->codecpar) < 0) {
 			fprintf(stderr, "parameters to context for stream %d failed\n", n);
 			avcodec_free_context(&avctx);
 			continue;
@@ -427,14 +427,14 @@ bool Input::UpdateTracks()
 		else
 			track.duration = avfc->duration;
 
-		switch (st->codecpar->codec_type) {
+		switch (stream->codecpar->codec_type) {
 			case AVMEDIA_TYPE_VIDEO:
 				player->manager.addVideoTrack(track);
 				if (!videoTrack)
 					videoTrack = player->manager.getVideoTrack(track.pid);
 				break;
 			case AVMEDIA_TYPE_AUDIO:
-				switch(st->codecpar->codec_id) {
+				switch(stream->codecpar->codec_id) {
 					case AV_CODEC_ID_MP2:
 						track.type = 1;
 						break;
@@ -448,10 +448,10 @@ bool Input::UpdateTracks()
 						track.type = 4;
 						break;
 					case AV_CODEC_ID_AAC: {
-						unsigned int extradata_size = st->codecpar->extradata_size;
+						unsigned int extradata_size = stream->codecpar->extradata_size;
 						unsigned int object_type = 2;
 						if(extradata_size >= 2)
-							object_type = st->codecpar->extradata[0] >> 3;
+							object_type = stream->codecpar->extradata[0] >> 3;
 						if (extradata_size <= 1 || object_type == 1 || object_type == 5) {
 							fprintf(stderr, "use resampling for AAC\n");
 							track.type = 6;
@@ -478,7 +478,7 @@ bool Input::UpdateTracks()
 					audioTrack = player->manager.getAudioTrack(track.pid);
 				break;
 			case AVMEDIA_TYPE_SUBTITLE:
-				switch(st->codecpar->codec_id) {
+				switch(stream->codecpar->codec_id) {
 					case AV_CODEC_ID_SRT:
 					case AV_CODEC_ID_SUBRIP:
 					case AV_CODEC_ID_TEXT:
@@ -496,7 +496,7 @@ bool Input::UpdateTracks()
 				player->manager.addSubtitleTrack(track);
 				break;
 			default:
-				fprintf(stderr, "not handled or unknown codec_type %d\n", st->codecpar->codec_type);
+				fprintf(stderr, "not handled or unknown codec_type %d\n", stream->codecpar->codec_type);
 				break;
 		}
 	}

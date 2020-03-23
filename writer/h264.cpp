@@ -83,9 +83,9 @@ bool WriterH264::Write(AVPacket *packet, int64_t pts)
 		unsigned int len = 0;
 		if (initialHeader) {
 			initialHeader = false;
-			iov[ic].iov_base = st->codecpar->extradata;
-			iov[ic++].iov_len = st->codecpar->extradata_size;
-			len += st->codecpar->extradata_size;
+			iov[ic].iov_base = stream->codecpar->extradata;
+			iov[ic++].iov_len = stream->codecpar->extradata_size;
+			len += stream->codecpar->extradata_size;
 		}
 		iov[ic].iov_base = packet->data;
 		iov[ic++].iov_len = packet->size;
@@ -104,10 +104,10 @@ bool WriterH264::Write(AVPacket *packet, int64_t pts)
 
 	// convert NAL units without sync byte sequence to byte-stream format
 	if (initialHeader) {
-		avcC_t *avcCHeader = (avcC_t *) st->codecpar->extradata;
+		avcC_t *avcCHeader = (avcC_t *) stream->codecpar->extradata;
 
 		if (!avcCHeader) {
-			fprintf(stderr, "st->codecpar->extradata == NULL\n");
+			fprintf(stderr, "stream->codecpar->extradata == NULL\n");
 			return false;
 		}
 

@@ -253,10 +253,10 @@ bool WriterPCM::Write(AVPacket *packet, int64_t pts)
 			decoded_frame = NULL;
 		}
 
-		AVCodec *codec = avcodec_find_decoder(st->codecpar->codec_id);
+		AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
 		if (!codec)
 		{
-			fprintf(stderr, "[libeplayer3] %s %d: avcodec_find_decoder(%llx)\n", __func__, __LINE__, (unsigned long long) st->codecpar->codec_id);
+			fprintf(stderr, "[libeplayer3] %s %d: avcodec_find_decoder(%llx)\n", __func__, __LINE__, (unsigned long long) stream->codecpar->codec_id);
 			return false;
 		}
 		avcodec_close(avctx);
