@@ -89,8 +89,8 @@ bool WriterDIVX::Write(AVPacket *packet, int64_t pts)
 	iov[ic++].iov_len = FakeHeaderLength;
 
 	if (initialHeader) {
-		iov[ic].iov_base = stream->codecpar->extradata;
-		iov[ic++].iov_len = stream->codecpar->extradata_size;
+		iov[ic].iov_base = st->codecpar->extradata;
+		iov[ic++].iov_len = st->codecpar->extradata_size;
 		initialHeader = false;
 	}
 	iov[ic].iov_base = packet->data;
